@@ -11,8 +11,8 @@ ttvfs is a small C++ library designed to provide virtual file system support
 inside of an application. The application can choose to mount files and directories
 from any source, and access them in a uniform way (similar to fopen(), see examples).
 
-This does *not* mean support for fancy "http://",
-"zip://", "smb://"-like filenames, neither support for accessing archives
+This does *not* mean support for fancy 'http://',
+'zip://', 'smb://'-like filenames, neither support for accessing archives
 like directories, as in "./data.zip/file.txt".
 
 If such functionality is required, an extension has to be made that generates
