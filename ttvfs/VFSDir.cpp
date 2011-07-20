@@ -126,14 +126,10 @@ bool VFSDir::insert(VFSDir *subdir, bool overwrite /* = true */)
     }
     else
     {
-        // FIXME: what the fuck -- create new not to pollute the already existing trees
+        // create a new subtree, not to pollute the original one with data that may be added later
         mydir = subdir->createNew(); // create subdir of same type
         mydir->_setFullName(subdir->fullname());
         _subdirs[mydir->name()] = mydir;
-
-        //_subdirs[subdir->name()] = subdir;
-        //subdir->ref++;
-        //return true;
     }
 
     return mydir->merge(subdir, overwrite);
