@@ -8,8 +8,11 @@
 #include <vector>
 #include <deque>
 #include <list>
+#include <string>
+#include <iostream>
 
 #include "VFSAtomic.h"
+
 
 VFS_NAMESPACE_START
 
