@@ -85,7 +85,7 @@ public:
     /** Basic RTTI, for debugging purposes */
     virtual const char *getType(void) const { return "<BASE>"; }
 
-    
+
     /** Reference count, if the pointer to this file is stored somewhere it is advisable to increase
         (ref++) it. If it reaches 0, this file is deleted automatically. */
     SelfRefCounter<VFSFile> ref;
@@ -121,6 +121,8 @@ public:
     virtual const void *getBuf(void);
     virtual void dropBuf(bool del);
     virtual const char *getType(void) const { return "disk"; }
+
+    inline void *getFP() { return _fh; }
 
 protected:
     void _setName(const char *n);
