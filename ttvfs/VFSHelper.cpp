@@ -149,7 +149,10 @@ void VFSHelper::Reload(bool fromDisk /* = false */)
         LoadFileSysRoot();
     Prepare(false);
     for(VFSMountList::iterator it = vlist.begin(); it != vlist.end(); it++)
+    {
+        //printf("VFS: mount {%s} [%s] -> [%s] (overwrite: %d)\n", it->vdir->getType(), it->vdir->fullname(), it->mountPoint.c_str(), it->overwrite);
         GetDir(it->mountPoint.c_str(), true)->merge(it->vdir, it->overwrite);
+    }
 }
 
 bool VFSHelper::Mount(const char *src, const char *dest, bool overwrite /* = true*/)
@@ -168,7 +171,6 @@ bool VFSHelper::AddVFSDir(VFSDir *dir, const char *subdir /* = NULL */, bool ove
     VFSDir *sd = GetDir(subdir, true);
     if(!sd) // may be NULL if Prepare() was not called before
         return false;
-    dir->ref++; // because this is to be added to vlist
     VDirEntry ve(dir, subdir, overwrite);
     _StoreMountPoint(ve);
     sd->merge(dir, overwrite); // merge into specified subdir. will be (virtually) created if not existing
@@ -191,14 +193,19 @@ bool VFSHelper::Unmount(const char *src, const char *dest)
 
 void VFSHelper::_StoreMountPoint(const VDirEntry& ve)
 {
+    // increase ref already before it will be added
+    ve.vdir->ref++;
+
     // scan through and ensure only one mount point with the same data is present.
     // if present, remove and re-add, this ensures the mount point is at the end of the list
     for(VFSMountList::iterator it = vlist.begin(); it != vlist.end(); )
     {
         const VDirEntry& oe = *it;
-        if(ve.mountPoint == oe.mountPoint && ve.vdir == oe.vdir
+        if (ve.mountPoint == oe.mountPoint
+            && (ve.vdir == oe.vdir || !casecmp(ve.vdir->fullname(), oe.vdir->fullname()))
             && (ve.overwrite || !oe.overwrite) ) // overwrite definitely, or if other does not overwrite
         {
+            it->vdir->ref--;
             vlist.erase(it++); // do not break; just in case there are more (fixme?)
         }
         else
@@ -213,8 +220,10 @@ bool VFSHelper::_RemoveMountPoint(const VDirEntry& ve)
     for(VFSMountList::iterator it = vlist.begin(); it != vlist.end(); ++it)
     {
         const VDirEntry& oe = *it;
-        if(ve.mountPoint == oe.mountPoint && ve.vdir == oe.vdir)
+        if(ve.mountPoint == oe.mountPoint
+            && (ve.vdir == oe.vdir || !casecmp(ve.vdir->fullname(), oe.vdir->fullname())) )
         {
+            it->vdir->ref--;
             vlist.erase(it);
             return true;
         }
@@ -222,12 +231,12 @@ bool VFSHelper::_RemoveMountPoint(const VDirEntry& ve)
     return false;
 }
 
-bool VFSHelper::MountExternalPath(const char *path, const char *where /* = "" */)
+bool VFSHelper::MountExternalPath(const char *path, const char *where /* = "" */, bool overwrite /* = true */)
 {
     // no guard required here, AddVFSDir has one, and the reference count is locked as well.
     VFSDirReal *vfs = new VFSDirReal;
     if(vfs->load(path))
-        AddVFSDir(vfs, where);
+        AddVFSDir(vfs, where, overwrite);
     return !!--(vfs->ref); // 0 if deleted
 }
 
@@ -244,6 +253,7 @@ inline static VFSFile *VFSHelper_GetFileByLoader(VFSLoader *ldr, const char *fn,
     VFSFile *vf = ldr->Load(fn);
     if(vf)
     {
+        VFS_GUARD_OPT(this);
         root->addRecursive(vf, true);
         --(vf->ref);
     }
@@ -252,8 +262,10 @@ inline static VFSFile *VFSHelper_GetFileByLoader(VFSLoader *ldr, const char *fn,
 
 VFSFile *VFSHelper::GetFile(const char *fn)
 {
-    while(fn[0] == '.' && fn[1] == '/')
-        fn += 2;
+    //while(fn[0] == '.' && fn[1] == '/')
+    //    fn += 2;
+    std::string fixed = FixPath(fn);
+    fn = fixed.c_str();
 
     VFSFile *vf = NULL;
 
@@ -283,18 +295,71 @@ VFSFile *VFSHelper::GetFile(const char *fn)
                 break;
     }
 
-    //printf("VFS: GetFile '%s' -> '%s' (%p)\n", fn, vf ? vf->fullname() : "NULL", vf);
+    //printf("VFS: GetFile '%s' -> '%s' (%s:%p)\n", fn, vf ? vf->fullname() : "NULL", vf ? vf->getType() : "?", vf);
 
     return vf;
 }
 
+inline static VFSDir *VFSHelper_GetDirByLoader(VFSLoader *ldr, const char *fn, VFSDir *root)
+{
+    if(!ldr)
+        return NULL;
+    VFSDir *vd = ldr->LoadDir(fn);
+    if(vd)
+    {
+        std::string parentname = StripLastPath(fn);
+
+        VFS_GUARD_OPT(this);
+        VFSDir *parent = parentname.empty() ? root : root->getDir(parentname.c_str(), true);
+        parent->insert(vd, true);
+        --(vd->ref); // should delete it
+
+        vd = root->getDir(fn); // can't return vd directly because it is cloned on insert+merge, and already deleted here
+    }
+    return vd;
+}
+
 VFSDir *VFSHelper::GetDir(const char* dn, bool create /* = false */)
 {
-    while(dn[0] == '.' && dn[1] == '/')
-        dn += 2;
+    //while(dn[0] == '.' && dn[1] == '/')
+    //    dn += 2;
+    std::string fixed = FixPath(dn);
+    dn = fixed.c_str();
 
-    VFS_GUARD_OPT(this);
-    return (merged && *dn) ? merged->getDir(dn, create) : merged;
+    VFSDir *vd;
+    {
+        VFS_GUARD_OPT(this);
+        if(!merged)
+            return NULL;
+        if(!*dn)
+            return merged;
+        vd = merged->getDir(dn);
+    }
+
+    if(!vd && create)
+    {
+        for(unsigned int i = 0; i < fixedLdrs.size(); ++i)
+            if((vd = VFSHelper_GetDirByLoader(fixedLdrs[i], dn, GetDirRoot())))
+                break;
+
+        if(!vd)
+        {
+            VFS_GUARD_OPT(this);
+            for(LoaderList::iterator it = dynLdrs.begin(); it != dynLdrs.end(); ++it)
+                if((vd = VFSHelper_GetDirByLoader(*it, dn, GetDirRoot())))
+                    break;
+        }
+
+        if(!vd)
+        {
+            VFS_GUARD_OPT(this);
+            vd = merged->getDir(dn, true);
+        }
+    }
+
+    //printf("VFS: GetDir '%s' -> '%s' (%s:%p)\n", dn, vd ? vd->fullname() : "NULL", vd ? vd->getType() : "?", vd);
+
+    return vd;
 }
 
 VFSDir *VFSHelper::GetDirRoot(void)

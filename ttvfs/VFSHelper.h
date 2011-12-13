@@ -95,7 +95,7 @@ public:
         or any other path to add it to that explicit location.
         It is advised not to use this to re-add parts already in the tree; use Mount() instead.
         Rule of thumb: If you called LoadFileSysRoot(), do not use this for subdirs. */
-    bool MountExternalPath(const char *path, const char *where = "");
+    bool MountExternalPath(const char *path, const char *where = "", bool overwrite = true);
 
     /** Adds a VFSDir object into the merged tree. If subdir is NULL (the default),
         add into the subdir stored in the VFSDir object. The tree will be extended if target dir does not exist.

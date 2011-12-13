@@ -22,11 +22,23 @@ struct ci_less
     {
         return VFS_STRICMP(a.c_str(), b.c_str()) < 0;
     }
+
 };
+inline int casecmp(const char *a, const char *b)
+{
+    return VFS_STRICMP(a, b);
+}
 
 #  ifdef _MSC_VER
 #    pragma warning(pop)
 #  endif
+#else
+
+inline int casecmp(const char *a, const char *b)
+{
+    return strcmp(a, b);
+}
+
 #endif
 
 

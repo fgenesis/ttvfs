@@ -6,7 +6,7 @@
 #ifndef VFS_INTERNAL_H
 #define VFS_INTERNAL_H
 
-// checks to enforcecorrect including
+// checks to enforce correct including
 #ifdef TTVFS_VFS_H
 #error Oops, TTVFS_VFS_H is defined, someone messed up and included VFS.h wrongly.
 #endif

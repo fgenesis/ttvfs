@@ -122,7 +122,6 @@ bool VFSDir::insert(VFSDir *subdir, bool overwrite /* = true */)
     if(it != _subdirs.end())
     {
         mydir = it->second;
-        //return it->second->merge(subdir, overwrite);
     }
     else
     {
@@ -137,16 +136,55 @@ bool VFSDir::insert(VFSDir *subdir, bool overwrite /* = true */)
 
 VFSFile *VFSDir::getFile(const char *fn)
 {
+    while(fn[0] == '.' && fn[1] == '/') // skip ./
+        fn += 2;
+
     char *slashpos = (char *)strchr(fn, '/');
 
     // if there is a '/' in the string, descend into subdir and continue there
     if(slashpos)
     {
-        const char *sub = slashpos + 1;
-        std::string t(fn, slashpos - fn);
+        // "" (the empty directory name) is allowed, so we can't return 'this' when hitting an empty string the first time.
+        // This whole mess is required for absolute unix-style paths ("/home/foo/..."),
+        // which, to integrate into the tree properly, sit in the root directory's ""-subdir.
+        // FIXME: Bad paths (double-slashes and the like) need to be normalized elsewhere, currently!
+
+        size_t len = strlen(fn);
+        char *dup = (char*)malloc(len + 1); // TODO: use stack alloc instead
+        memcpy(dup, fn, len + 1);
+        slashpos = dup + (slashpos - fn); // use direct offset, not to have to recount again the first time
+        VFSDir *subdir = this;
+        const char *ptr = dup;
+        Dirs::iterator it;
         VFS_GUARD_OPT(this);
-        VFSDir *subdir = getDir(t.c_str()); // fn is null-terminated early here
-        return subdir ? subdir->getFile(sub) : NULL;
+
+        goto pos_known;
+        do
+        {
+            ptr = slashpos + 1;
+            while(ptr[0] == '.' && ptr[1] == '/') // skip ./
+                ptr += 2;
+            slashpos = (char *)strchr(ptr, '/');
+            if(!slashpos)
+                break;
+
+        pos_known:
+            *slashpos = 0;
+            it = subdir->_subdirs.find(ptr);
+            if(it != subdir->_subdirs.end())
+                subdir = it->second; // found it
+            else
+                subdir = NULL; // bail out
+        }
+        while(subdir);
+        free(dup);
+        if(!subdir)
+            return NULL;
+        // restore pointer into original string, by offset
+        ptr = fn + (ptr - dup);
+
+        Files::iterator ft = subdir->_files.find(ptr);
+        return ft != subdir->_files.end() ? ft->second : NULL;
     }
 
     // no subdir? file must be in this dir now.

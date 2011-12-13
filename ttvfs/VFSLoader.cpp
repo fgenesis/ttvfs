@@ -4,6 +4,7 @@
 #include "VFSInternal.h"
 #include "VFSTools.h"
 #include "VFSFile.h"
+#include "VFSDir.h"
 #include "VFSLoader.h"
 
 VFS_NAMESPACE_START
@@ -19,6 +20,9 @@ static bool locateOneElement(char *buf)
     DIR *dirp;
 
     ptr = strrchr(buf, '/');  // find entry at end of path.
+
+    //printf("locateOneElem: buf='%s' ptr='%s'\n", ptr, buf);
+
     if (ptr == NULL)
     {
         dirp = opendir(".");
@@ -26,11 +30,15 @@ static bool locateOneElement(char *buf)
     }
     else
     {
-        *ptr = '\0';
+        if(ptr != buf) // strip only if not abs path
+            *ptr = '\0';
+        //printf("opendir: '%s'\n", buf);
         dirp = opendir(buf);
         *ptr = '/';
         ptr++;  // point past dirsep to entry itself.
     }
+
+    //printf("dirp = %p\n", dirp);
 
     struct dirent *dent;
     while ((dent = readdir(dirp)) != NULL)
@@ -64,7 +72,7 @@ static bool findFileHarder(char *fn)
     // check final element...
     found = found && locateOneElement(fn);
 
-    printf("tt: Fixed case '%s' [%s]\n", fn, found ? "found" : "NOT FOUND"); // TEMP
+    //printf("tt: Fixed case '%s' [%s]\n", fn, found ? "found" : "NOT FOUND"); // TEMP
     return found;
 }
 #endif
@@ -97,6 +105,44 @@ VFSFile *VFSLoaderDisk::Load(const char *fn)
 #endif
 
     return NULL;
+}
+
+VFSDir *VFSLoaderDisk::LoadDir(const char *fn)
+{
+    VFSDirReal *ret = NULL;
+    if(IsDirectory(fn))
+    {
+        ret = new VFSDirReal(); // must contain full file name
+        ret->load(fn);
+    }
+
+#if !defined(_WIN32) && defined(VFS_IGNORE_CASE)
+    size_t s = strlen(fn);
+    if(s < 511) // avoid using malloc() and alloca() for short strings
+    {
+        char t[512];
+        memcpy(&t[0], fn, s+1); // copy terminating '\0' as well
+        if(findFileHarder(&t[0])) // fixes the filename on the way
+        {
+            ret = new VFSDirReal();
+            ret->load(&t[0]);
+        }
+    }
+    else
+    {
+        char *t = (char*)malloc(s+1);
+        memcpy(t, fn, s+1);
+        if(findFileHarder(&t[0]))
+        {
+            ret = new VFSDirReal();
+            ret->load(&t[0]);
+        }
+
+        free(t);
+    }
+#endif
+
+    return ret;
 }
 
 VFS_NAMESPACE_END
