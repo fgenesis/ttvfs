@@ -253,7 +253,7 @@ inline static VFSFile *VFSHelper_GetFileByLoader(VFSLoader *ldr, const char *fn,
     VFSFile *vf = ldr->Load(fn);
     if(vf)
     {
-        VFS_GUARD_OPT(this);
+        VFS_GUARD_OPT(vf);
         root->addRecursive(vf, true);
         --(vf->ref);
     }
