@@ -44,6 +44,53 @@ void makeUppercase(std::string& s)
     std::transform(s.begin(), s.end(), s.begin(), toupper);
 }
 
+#if !_WIN32
+static bool _IsFile(const char *path, dirent *dp)
+{
+    switch(dp->d_type)
+    {
+        case DT_DIR:
+            return false;
+        case DT_LNK:
+        {
+            std::string fullname = path;
+            fullname += '/';
+            fullname += dp->d_name;
+            struct stat statbuf;
+            if(stat(fullname.c_str(), &statbuf))
+                return false; // error
+            return !S_ISDIR(statbuf.st_mode);
+        }
+        // TODO: for now, we consider other file types as regular files
+        default:
+            ;
+    }
+    return true;
+}
+
+static bool _IsDir(const char *path, dirent *dp)
+{
+    switch(dp->d_type)
+    {
+        case DT_DIR:
+            return true;
+        case DT_LNK:
+        {
+            std::string fullname = path;
+            fullname += '/';
+            fullname += dp->d_name;
+            struct stat statbuf;
+            if(stat(fullname.c_str(), &statbuf))
+                return false; // error
+            return S_ISDIR(statbuf.st_mode);
+        }
+        default:
+            ;
+    }
+    return false;
+}
+#endif
+
 // returns list of *plain* file names in given directory,
 // without paths, and without anything else
 void GetFileList(const char *path, StringList& files)
@@ -56,7 +103,7 @@ void GetFileList(const char *path, StringList& files)
     {
         while((dp=readdir(dirp)) != NULL)
         {
-            if (dp->d_type != DT_DIR) // only add if it is not a directory
+            if (_IsFile(path, dp)) // only add if it is not a directory
             {
                 std::string s(dp->d_name);
                 files.push_back(s);
@@ -102,7 +149,7 @@ void GetDirList(const char *path, StringList &dirs, bool recursive /* = false */
     {
         while((dp = readdir(dirp))) // assignment is intentional
         {
-            if (dp->d_type == DT_DIR) // only add if it is a directory
+            if (_IsDir(path, dp)) // only add if it is a directory
             {
                 if(strcmp(dp->d_name, ".") != 0 && strcmp(dp->d_name, "..") != 0)
                 {
@@ -144,7 +191,7 @@ void GetDirList(const char *path, StringList &dirs, bool recursive /* = false */
                 {
                     StringList newdirs;
                     GetDirList(d.c_str(), newdirs, true);
-                    
+
                     for(std::deque<std::string>::iterator it = newdirs.begin(); it != newdirs.end(); ++it)
                         dirs.push_back(d + *it);
                 }
