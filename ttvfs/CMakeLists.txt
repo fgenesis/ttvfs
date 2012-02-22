@@ -43,11 +43,14 @@ set(ttvfs_SRC
     VFS.h
     VFSAtomic.cpp
     VFSAtomic.h
+    VFSBase.cpp
+    VFSBase.h
     VFSDefines.h
     VFSDir.cpp
     VFSDir.h
     VFSFile.cpp
     VFSFile.h
+    VFSHashmap.h
     VFSHelper.cpp
     VFSHelper.h
     VFSInternal.h

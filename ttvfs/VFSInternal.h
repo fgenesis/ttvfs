@@ -31,6 +31,7 @@
 #include <cstdio>
 #include <cstring>
 #include <string>
+#include <cassert>
 
 // this is for MSVC - re-define functions
 #ifdef VFS_LARGEFILE_SUPPORT

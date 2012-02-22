@@ -23,7 +23,7 @@
 VFS_NAMESPACE_START
 
 // predecl is in VFS.h
-bool _checkCompatInternal(bool large, bool nocase, unsigned int vfspos_size)
+bool _checkCompatInternal(bool large, bool nocase, bool hashmap, unsigned int vfspos_size)
 {
 #ifdef VFS_LARGEFILE_SUPPORT
     bool largefile_i = true;
@@ -37,8 +37,15 @@ bool _checkCompatInternal(bool large, bool nocase, unsigned int vfspos_size)
     bool nocase_i = false;
 #endif
 
+#ifdef VFS_USE_HASHMAP
+    bool hashmap_i = true;
+#else
+    bool hashmap_i = false;
+#endif
+
     return (large == largefile_i)
         && (nocase == nocase_i)
+        && (hashmap == hashmap_i)
         && (sizeof(vfspos) == vfspos_size);
 }
 
@@ -107,8 +114,8 @@ bool VFSHelper::LoadFileSysRoot(void)
     VFS_GUARD_OPT(this);
     VFSDirReal *oldroot = filesysRoot;
 
-    filesysRoot = new VFSDirReal;
-    if(!filesysRoot->load("."))
+    filesysRoot = new VFSDirReal(".");
+    if(!filesysRoot->load())
     {
         filesysRoot->ref--;
         filesysRoot = oldroot;
@@ -148,7 +155,7 @@ void VFSHelper::Reload(bool fromDisk /* = false */)
     if(fromDisk)
         LoadFileSysRoot();
     Prepare(false);
-    for(VFSMountList::iterator it = vlist.begin(); it != vlist.end(); it++)
+    for(VFSMountList::iterator it = vlist.begin(); it != vlist.end(); ++it)
     {
         //printf("VFS: mount {%s} [%s] -> [%s] (overwrite: %d)\n", it->vdir->getType(), it->vdir->fullname(), it->mountPoint.c_str(), it->overwrite);
         GetDir(it->mountPoint.c_str(), true)->merge(it->vdir, it->overwrite);
@@ -234,8 +241,8 @@ bool VFSHelper::_RemoveMountPoint(const VDirEntry& ve)
 bool VFSHelper::MountExternalPath(const char *path, const char *where /* = "" */, bool overwrite /* = true */)
 {
     // no guard required here, AddVFSDir has one, and the reference count is locked as well.
-    VFSDirReal *vfs = new VFSDirReal;
-    if(vfs->load(path))
+    VFSDirReal *vfs = new VFSDirReal(path);
+    if(vfs->load())
         AddVFSDir(vfs, where, overwrite);
     return !!--(vfs->ref); // 0 if deleted
 }
@@ -246,11 +253,11 @@ void VFSHelper::AddLoader(VFSLoader *ldr)
     dynLdrs.push_back(ldr);
 }
 
-inline static VFSFile *VFSHelper_GetFileByLoader(VFSLoader *ldr, const char *fn, VFSDir *root)
+inline static VFSFile *VFSHelper_GetFileByLoader(VFSLoader *ldr, const char *fn, const char *unmangled, VFSDir *root)
 {
     if(!ldr)
         return NULL;
-    VFSFile *vf = ldr->Load(fn);
+    VFSFile *vf = ldr->Load(fn, unmangled);
     if(vf)
     {
         VFS_GUARD_OPT(vf);
@@ -262,8 +269,7 @@ inline static VFSFile *VFSHelper_GetFileByLoader(VFSLoader *ldr, const char *fn,
 
 VFSFile *VFSHelper::GetFile(const char *fn)
 {
-    //while(fn[0] == '.' && fn[1] == '/')
-    //    fn += 2;
+    const char *unmangled = fn;
     std::string fixed = FixPath(fn);
     fn = fixed.c_str();
 
@@ -284,14 +290,14 @@ VFSFile *VFSHelper::GetFile(const char *fn)
     // constant, no locking required here - also a bad idea in case a loader does heavy I/O
     if(!vf)
         for(unsigned int i = 0; i < fixedLdrs.size(); ++i)
-            if((vf = VFSHelper_GetFileByLoader(fixedLdrs[i], fn, GetDirRoot())))
+            if((vf = VFSHelper_GetFileByLoader(fixedLdrs[i], fn, unmangled, GetDirRoot())))
                 break;
 
     if(!vf)
     {
         VFS_GUARD_OPT(this);
         for(LoaderList::iterator it = dynLdrs.begin(); it != dynLdrs.end(); ++it)
-            if((vf = VFSHelper_GetFileByLoader(*it, fn, GetDirRoot())))
+            if((vf = VFSHelper_GetFileByLoader(*it, fn, unmangled, GetDirRoot())))
                 break;
     }
 
@@ -300,11 +306,11 @@ VFSFile *VFSHelper::GetFile(const char *fn)
     return vf;
 }
 
-inline static VFSDir *VFSHelper_GetDirByLoader(VFSLoader *ldr, const char *fn, VFSDir *root)
+inline static VFSDir *VFSHelper_GetDirByLoader(VFSLoader *ldr, const char *fn, const char *unmangled, VFSDir *root)
 {
     if(!ldr)
         return NULL;
-    VFSDir *vd = ldr->LoadDir(fn);
+    VFSDir *vd = ldr->LoadDir(fn, unmangled);
     if(vd)
     {
         std::string parentname = StripLastPath(fn);
@@ -321,8 +327,7 @@ inline static VFSDir *VFSHelper_GetDirByLoader(VFSLoader *ldr, const char *fn, V
 
 VFSDir *VFSHelper::GetDir(const char* dn, bool create /* = false */)
 {
-    //while(dn[0] == '.' && dn[1] == '/')
-    //    dn += 2;
+    const char *unmangled = dn;
     std::string fixed = FixPath(dn);
     dn = fixed.c_str();
 
@@ -339,14 +344,14 @@ VFSDir *VFSHelper::GetDir(const char* dn, bool create /* = false */)
     if(!vd && create)
     {
         for(unsigned int i = 0; i < fixedLdrs.size(); ++i)
-            if((vd = VFSHelper_GetDirByLoader(fixedLdrs[i], dn, GetDirRoot())))
+            if((vd = VFSHelper_GetDirByLoader(fixedLdrs[i], dn, unmangled, GetDirRoot())))
                 break;
 
         if(!vd)
         {
             VFS_GUARD_OPT(this);
             for(LoaderList::iterator it = dynLdrs.begin(); it != dynLdrs.end(); ++it)
-                if((vd = VFSHelper_GetDirByLoader(*it, dn, GetDirRoot())))
+                if((vd = VFSHelper_GetDirByLoader(*it, dn, unmangled, GetDirRoot())))
                     break;
         }
 

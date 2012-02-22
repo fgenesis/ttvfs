@@ -33,6 +33,7 @@ std::string StripLastPath(const std::string& s);
 void GetFileListRecursive(std::string dir, StringList& files, bool withQueriedDir = false);
 bool WildcardMatch(const char *str, const char *pattern);
 size_t strnNLcpy(char *dst, const char *src, unsigned int n = -1);
+char *fastcat(char *s, const char *add);
 
 template <class T> void StrSplit(const std::string &src, const std::string &sep, T& container, bool keepEmpty = false)
 {
@@ -53,6 +54,46 @@ template <class T> void StrSplit(const std::string &src, const std::string &sep,
     if (keepEmpty || s.length())
         container.push_back(s);
 }
+
+inline static size_t stringhash(const char *s)
+{
+    size_t h = 0;
+    for( ; *s; ++s)
+    {
+        h += *s;
+        h += ( h << 10 );
+        h ^= ( h >> 6 );
+    }
+
+    h += ( h << 3 );
+    h ^= ( h >> 11 );
+    h += ( h << 15 );
+
+    return h;
+}
+
+inline static size_t stringhash_nocase(const char *s)
+{
+    size_t h = 0;
+    for( ; *s; ++s)
+    {
+        h += tolower(*s);
+        h += ( h << 10 );
+        h ^= ( h >> 6 );
+    }
+
+    h += ( h << 3 );
+    h ^= ( h >> 11 );
+    h += ( h << 15 );
+
+    return h;
+}
+
+#ifdef VFS_IGNORE_CASE
+#  define STRINGHASH(s) stringhash_nocase(s)
+#else
+#  define STRINGHASH(s) stringhash(s)
+#endif
 
 VFS_NAMESPACE_END
 

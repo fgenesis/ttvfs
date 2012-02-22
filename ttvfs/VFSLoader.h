@@ -4,6 +4,7 @@
 #ifndef VFSLOADER_H
 #define VFSLOADER_H
 
+#include <cstddef>
 #include "VFSDefines.h"
 
 VFS_NAMESPACE_START
@@ -16,16 +17,16 @@ class VFSLoader
 {
 public:
     virtual ~VFSLoader() {}
-    virtual VFSFile *Load(const char *fn) = 0;
-    virtual VFSDir *LoadDir(const char *fn) { return 0; }
+    virtual VFSFile *Load(const char *fn, const char *unmangled) = 0;
+    virtual VFSDir *LoadDir(const char *fn, const char *unmangled) { return NULL; }
 };
 
 class VFSLoaderDisk : public VFSLoader
 {
 public:
     virtual ~VFSLoaderDisk() {}
-    virtual VFSFile *Load(const char *fn);
-    virtual VFSDir *LoadDir(const char *fn);
+    virtual VFSFile *Load(const char *fn, const char *unmangled);
+    virtual VFSDir *LoadDir(const char *fn, const char *unmangled);
 };
 
 VFS_NAMESPACE_END

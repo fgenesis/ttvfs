@@ -244,7 +244,7 @@ bool CreateDirRec(const char *dir)
     std::string d;
     d.reserve(strlen(dir));
     bool last;
-    for(StringList::iterator it = li.begin(); it != li.end(); it++)
+    for(StringList::iterator it = li.begin(); it != li.end(); ++it)
     {
         d += *it;
         last = CreateDir(d.c_str());
@@ -315,7 +315,7 @@ bool IsDirectory(const char *s)
     {
         struct stat status;
         stat( s, &status );
-        return status.st_mode & S_IFDIR;
+        return status.st_mode & S_IFDIR; // FIXME: what about symlinks here?
     }
     return false;
 #endif
@@ -482,5 +482,18 @@ size_t strnNLcpy(char *dst, const char *src, unsigned int n /* = -1 */)
 
     return dst - olddst;
 }
+
+// Directly appends 'add' to 's', ensuring that 's' is null-terminated.
+// Returns the next write position for fastcat (the null byte at the end).
+char *fastcat(char *s, const char *add)
+{
+    size_t len = strlen(add);
+    memcpy(s, add, len);
+    s += len;
+    *(s + 1) = 0;
+    return s;
+}
+
+
 
 VFS_NAMESPACE_END

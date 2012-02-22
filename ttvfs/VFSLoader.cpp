@@ -78,7 +78,7 @@ static bool findFileHarder(char *fn)
 #endif
 
 
-VFSFile *VFSLoaderDisk::Load(const char *fn)
+VFSFile *VFSLoaderDisk::Load(const char *fn, const char * /*ignored*/)
 {
     if(FileExists(fn))
         return new VFSFileReal(fn); // must contain full file name
@@ -107,13 +107,13 @@ VFSFile *VFSLoaderDisk::Load(const char *fn)
     return NULL;
 }
 
-VFSDir *VFSLoaderDisk::LoadDir(const char *fn)
+VFSDir *VFSLoaderDisk::LoadDir(const char *fn, const char * /*ignored*/)
 {
     VFSDirReal *ret = NULL;
     if(IsDirectory(fn))
     {
-        ret = new VFSDirReal(); // must contain full file name
-        ret->load(fn);
+        ret = new VFSDirReal(fn); // must contain full file name
+        ret->load();
     }
 
 #if !defined(_WIN32) && defined(VFS_IGNORE_CASE)
@@ -130,7 +130,7 @@ VFSDir *VFSLoaderDisk::LoadDir(const char *fn)
     }
     else
     {
-        char *t = (char*)malloc(s+1);
+        char *t = (char*)VFS_STACK_ALLOC(s+1);
         memcpy(t, fn, s+1);
         if(findFileHarder(&t[0]))
         {
@@ -138,7 +138,7 @@ VFSDir *VFSLoaderDisk::LoadDir(const char *fn)
             ret->load(&t[0]);
         }
 
-        free(t);
+        VFS_STACK_FREE(t);
     }
 #endif
 

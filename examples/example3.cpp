@@ -26,7 +26,7 @@ VFSTextStdStreamIn::VFSTextStdStreamIn(const char *fn, bool dropOther /* = true 
     ttvfs::VFSFile *vf = vfs.GetFile(fn);
     if(vf)
     {
-        vf->open(NULL, "r"); // force text mode reading
+        vf->open("r"); // force text mode reading
         str((char*)vf->getBuf()); // stringstream will always make a copy of the input buffer
         vf->close();
 

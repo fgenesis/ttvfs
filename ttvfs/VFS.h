@@ -35,7 +35,7 @@ THE SOFTWARE.
 #include "VFSDefines.h"
 
 VFS_NAMESPACE_START
-bool _checkCompatInternal(bool large, bool nocase, unsigned int vfspos_size);
+bool _checkCompatInternal(bool large, bool nocase, bool hashmap, unsigned int vfspos_size);
 
 /** It is recommended to call this function early in your code
     and ensure it returns true - if it does not, compiler settings
@@ -53,7 +53,13 @@ inline static bool checkCompat(void)
 #else
     bool nocase = false;
 #endif
-    return _checkCompatInternal(largefile, nocase, sizeof(vfspos));
+
+#ifdef VFS_USE_HASHMAP
+    bool hashmap = true;
+#else
+    bool hashmap = false;
+#endif
+    return _checkCompatInternal(largefile, nocase, hashmap, sizeof(vfspos));
 }
 VFS_NAMESPACE_END
 

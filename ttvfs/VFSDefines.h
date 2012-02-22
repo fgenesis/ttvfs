@@ -21,15 +21,31 @@
 // (no sane programmer should do this, anyway).
 // However, on non-windows systems this will decrease performance when checking for files
 // on disk (see VFSLoader.cpp).
-//#define VFS_IGNORE_CASE
+#define VFS_IGNORE_CASE
 
 // Define this to make all VFSFile, VFSDir, VFSHelper operations thread-safe.
 // If you do, do not forget to add your own implementation to VFSAtomic.cpp/.h !
 // If this is not defined, you can still do manual locking if you know what you're doing,
 // performance matters, and you implemented actual locking into the Mutex class.
 // If no Mutex implementation is provided, its operations are no-ops, beware!
+// Note: This adds a *lot* of overhead. Better ensure thread safety yourself, externally. Really!
 //#define VFS_THREADSAFE
 
+// By default, ttvfs uses an std::map to store stuff.
+// Uncomment the line below to use an (experimental!) hashmap.
+// With std::map, iterating over entries will always deliver them in sorted order.
+// The hashmap will deliver entries in random order, but lookup will be much faster
+// (especially if VFS_IGNORE_CASE is set!)
+#define VFS_USE_HASHMAP
+
+// These are used for small, temporary memory allocations that can remain on the stack.
+// If alloca is available, this is the preferred way.
+#include <malloc.h>
+#define VFS_STACK_ALLOC(size) alloca(size)
+#define VFS_STACK_FREE(ptr)   /* no need to free anything here */
+// Fail-safe:
+//#define VFS_STACK_ALLOC(size) malloc(size)
+//#define VFS_STACK_FREE(ptr)  free(ptr)
 
 /* --- End of config section --- */
 
@@ -73,6 +89,9 @@ VFS_NAMESPACE_START
 #endif
 
 static const vfspos npos = vfspos(-1);
+
+typedef void *(*allocator_func)(size_t);
+typedef void (*delete_func)(void*);
 
 VFS_NAMESPACE_END
 

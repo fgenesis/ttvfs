@@ -22,6 +22,6 @@ int main(int argc, char *argv[])
     }
 
     puts((const char*)vf->getBuf()); // dump to console
-    
+
     return 0;
 }

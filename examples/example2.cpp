@@ -12,7 +12,7 @@ static void PrintFile(const char *fn)
     std::cout << "Open file " << fn << ": ";
     if(vf)
     {
-        vf->open(NULL, "r"); // force text mode
+        vf->open("r"); // force text mode
         std::cout << (const char*)vf->getBuf() << std::endl;
         vf->dropBuf(true); // no longer needed
         vf->close();
@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
 
     PrintFile("myfile.txt"); // Access the file as before -> it got replaced.
 
-    std::cout << "-- Before mounting 'more/even_more/deep' -> 'far'" << std::endl;
+    std::cout << "-- Before mounting 'more/even_more/deep' -> 'far' (should error)" << std::endl;
 
     PrintFile("far/file.txt"); // not found!
 
