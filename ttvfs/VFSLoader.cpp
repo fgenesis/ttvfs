@@ -11,7 +11,7 @@ VFS_NAMESPACE_START
 
 #if !defined(_WIN32) && defined(VFS_IGNORE_CASE)
 
-#include <sys/dir.h>
+#include <dirent.h>
 
 // based on code in PhysicsFS: http://icculus.org/physfs/
 static bool locateOneElement(char *buf)
