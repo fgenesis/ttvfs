@@ -69,6 +69,7 @@ VFS_NAMESPACE_END
 #include "VFSHelper.h"
 #include "VFSFile.h"
 #include "VFSDir.h"
+#include "VFSSystemPaths.h"
 
 
 // Check to enforce correct including.

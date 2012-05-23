@@ -98,6 +98,9 @@ unsigned int VFSDirZip::load(bool /*ignored*/)
         vf->ref--;
     }
 
+    // Not necessary to keep open all the time, VFSFileZip will re-open the archive if needed
+    //close();
+
     return files;
 }
 

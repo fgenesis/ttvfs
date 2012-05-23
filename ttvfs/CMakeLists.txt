@@ -20,6 +20,8 @@ set(ttvfs_SRC
     VFSLoader.cpp
     VFSLoader.h
     VFSSelfRefCounter.h
+    VFSSystemPaths.cpp
+    VFSSystemPaths.h
     VFSTools.cpp
     VFSTools.h
 )

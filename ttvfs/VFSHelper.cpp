@@ -257,11 +257,11 @@ bool VFSHelper::_RemoveMountPoint(const VDirEntry& ve)
     return false;
 }
 
-bool VFSHelper::MountExternalPath(const char *path, const char *where /* = "" */, bool overwrite /* = true */)
+bool VFSHelper::MountExternalPath(const char *path, const char *where /* = "" */, bool loadRec /* = false */, bool overwrite /* = true */)
 {
     VFS_GUARD_OPT(this);
     VFSDirReal *vfs = new VFSDirReal(path);
-    if(vfs->load(true))
+    if(vfs->load(loadRec))
         AddVFSDir(vfs, where, overwrite);
     return !!--(vfs->ref); // 0 if deleted
 }
@@ -406,6 +406,14 @@ VFSDir *VFSHelper::GetBaseTree(const char *path)
     for(DirArray::iterator it = trees.begin(); it != trees.end(); ++it)
         if(!casecmp(it->source.c_str(), path))
             return it->dir;
+    return NULL;
+}
+
+VFSDir *VFSHelper::GetMountPoint(const char *path)
+{
+    for(VFSMountList::iterator it = vlist.begin(); it != vlist.end(); ++it)
+        if(!casecmp(it->mountPoint.c_str(), path))
+            return it->vdir;
     return NULL;
 }
 

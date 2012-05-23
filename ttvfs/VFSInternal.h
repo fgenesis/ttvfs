@@ -13,17 +13,6 @@
 
 #include "VFSDefines.h"
 
-#if _MSC_VER
-# ifndef _CRT_SECURE_NO_WARNINGS
-#   define _CRT_SECURE_NO_WARNINGS
-# endif
-#ifndef _CRT_SECURE_NO_DEPRECATE
-#   define _CRT_SECURE_NO_DEPRECATE
-#endif
-#   pragma warning(disable: 4355) // 'this' : used in base member initializer list
-#endif
-
-
 #include <cstdlib>
 #include <cstring>
 #include <string>
@@ -51,7 +40,18 @@ template <typename T> inline void deleteHelper(delete_func deletor, T *mem)
         delete [] mem;
 }
 
-
 VFS_NAMESPACE_END
+
+
+#if _MSC_VER
+# ifndef _CRT_SECURE_NO_WARNINGS
+#   define _CRT_SECURE_NO_WARNINGS
+# endif
+#ifndef _CRT_SECURE_NO_DEPRECATE
+#   define _CRT_SECURE_NO_DEPRECATE
+#endif
+#   pragma warning(disable: 4355) // 'this' : used in base member initializer list
+#endif
+
 
 #endif
