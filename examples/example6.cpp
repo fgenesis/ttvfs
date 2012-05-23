@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
     vfs.LoadFileSysRoot(false);
     vfs.Prepare();
 
-	std::cout << "Possible app dir: " << ttvfs::GetAppDir("example6") << std::endl;
+    std::cout << "Possible app dir: " << ttvfs::GetAppDir("example6") << std::endl;
 
     // Make the user's home directory accessible as "./user"
     vfs.MountExternalPath(ttvfs::GetUserDir().c_str(), "user");

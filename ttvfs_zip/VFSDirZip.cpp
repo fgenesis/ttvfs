@@ -47,6 +47,7 @@ VFSDirZip::VFSDirZip(VFSFile *zf)
 {
     _zf->ref++;
     _setOrigin(this);
+    memset(&_zip, 0, sizeof(_zip));
 }
 
 VFSDirZip::~VFSDirZip()
@@ -71,7 +72,6 @@ unsigned int VFSDirZip::load(bool /*ignored*/)
 {
     close();
 
-    memset(&_zip, 0, sizeof(_zip));
     if(!zip_reader_init_vfsfile(&_zip, _zf, 0))
         return 0;
 
