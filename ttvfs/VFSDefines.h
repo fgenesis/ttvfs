@@ -31,7 +31,7 @@
 // Note: This adds a *lot* of overhead. Better ensure thread safety yourself, externally. Really!
 //#define VFS_THREADSAFE
 
-// By default, ttvfs uses an std::map to store stuff.
+// By default, ttvfs uses a std::map to store stuff.
 // Uncomment the line below to use an (experimental!) hashmap.
 // With std::map, iterating over entries will always deliver them in sorted order.
 // The hashmap will deliver entries in random order, but lookup will be much faster
@@ -41,6 +41,9 @@
 // These are used for small, temporary memory allocations that can remain on the stack.
 // If alloca is available, this is the preferred way.
 #include <stdlib.h>
+#ifdef _MSC_VER
+#  include <malloc.h> // MSVC still needs this for alloca
+#endif
 #define VFS_STACK_ALLOC(size) alloca(size)
 #define VFS_STACK_FREE(ptr)   /* no need to free anything here */
 // Fail-safe:
