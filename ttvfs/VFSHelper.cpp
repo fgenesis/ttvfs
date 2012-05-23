@@ -124,6 +124,7 @@ bool VFSHelper::LoadFileSysRoot(bool recursive)
     bt.source = "";
     bt.dir = filesysRoot;
     trees.push_back(bt);
+    filesysRoot->ref++;
 
     AddVFSDir(filesysRoot, "");
 
@@ -136,7 +137,7 @@ void VFSHelper::Prepare(bool clear /* = true */)
     VFS_GUARD_OPT(this);
 
     Reload(false, clear, false); // HACK
-    
+
     //for(DirArray::iterator it = trees.begin(); it != trees.end(); ++it)
     //    merged->getDir((*it)->fullname(), true)->merge(*it);
 }
