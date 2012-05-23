@@ -82,64 +82,37 @@ VFSFile *VFSLoaderDisk::Load(const char *fn, const char * /*ignored*/)
 {
     if(FileExists(fn))
         return new VFSFileReal(fn); // must contain full file name
-    
+
+    VFSFileReal *vf = NULL;
+
 #if !defined(_WIN32) && defined(VFS_IGNORE_CASE)
     size_t s = strlen(fn);
-    if(s < 511) // avoid using malloc() and alloca() for short strings
-    {
-        char t[512];
-        memcpy(&t[0], fn, s+1); // copy terminating '\0' as well
-        if(findFileHarder(&t[0])) // fixes the filename on the way
-            return new VFSFileReal(&t[0]);
-    }
-    else
-    {
-        char *t = (char*)malloc(s+1);
-        VFSFileReal *vf = NULL;
-        memcpy(t, fn, s+1);
-        if(findFileHarder(&t[0]))
-            vf = new VFSFileReal(&t[0]);
-        free(t);
-        return vf;
-    }
+    char *t = (char*)VFS_STACK_ALLOC(s+1);
+    memcpy(t, fn, s+1); // copy terminating '\0' as well
+    if(findFileHarder(&t[0])) // fixes the filename on the way
+        vf = new VFSFileReal(&t[0]);
+    VFS_STACK_FREE(t);
 #endif
 
-    return NULL;
+    return vf;
 }
 
 VFSDir *VFSLoaderDisk::LoadDir(const char *fn, const char * /*ignored*/)
 {
-    VFSDirReal *ret = NULL;
     if(IsDirectory(fn))
-    {
-        ret = new VFSDirReal(fn); // must contain full file name
-        ret->load(true);
-    }
+        return new VFSDirReal(fn); // must contain full file name
+
+    VFSDirReal *ret = NULL;
 
 #if !defined(_WIN32) && defined(VFS_IGNORE_CASE)
     size_t s = strlen(fn);
-    if(s < 511) // avoid using malloc() and alloca() for short strings
+    char *t = (char*)VFS_STACK_ALLOC(s+1);
+    memcpy(t, fn, s+1); // copy terminating '\0' as well
+    if(findFileHarder(&t[0])) // fixes the filename on the way
     {
-        char t[512];
-        memcpy(&t[0], fn, s+1); // copy terminating '\0' as well
-        if(findFileHarder(&t[0])) // fixes the filename on the way
-        {
-            ret = new VFSDirReal();
-            ret->load(&t[0]);
-        }
+        ret = new VFSDirReal(&t[0]);
     }
-    else
-    {
-        char *t = (char*)VFS_STACK_ALLOC(s+1);
-        memcpy(t, fn, s+1);
-        if(findFileHarder(&t[0]))
-        {
-            ret = new VFSDirReal();
-            ret->load(&t[0]);
-        }
-
-        VFS_STACK_FREE(t);
-    }
+    VFS_STACK_FREE(t);
 #endif
 
     return ret;

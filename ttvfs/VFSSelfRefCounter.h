@@ -15,7 +15,7 @@ private:
     SelfRefCounter(SelfRefCounter& r); // forbid copy constructor
     inline unsigned int _deref(void)
     {
-        unsigned int cc = (unsigned int)Atomic_Decr(c); // copy c, in case we get deleted
+        volatile unsigned int cc = (unsigned int)Atomic_Decr(c); // copy c, in case we get deleted
         if(DELSELF && !cc)
         {
             delete self;
