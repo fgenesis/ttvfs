@@ -11,6 +11,10 @@
 
 #include <cstdio>
 
+// Compile time assertion to make sure things work as expected
+#if defined(VFS_LARGEFILE_SUPPORT) && !defined(_MSC_VER)
+static void _dummy_() { switch(0) { case 4: case sizeof(off_t): ; } }
+#endif
 
 VFS_NAMESPACE_START
 
@@ -30,7 +34,7 @@ int real_fseek(void *fh, vfspos offset, int origin)
 #  ifdef _MSC_VER
     return _fseeki64((FILE*)fh, offset, origin);
 #  else
-    return fseeko64((FILE*)fh, offset, origin);
+    return fseeko((FILE*)fh, offset, origin);
 #  endif
 #else
     return fseek((FILE*)fh, offset, origin);
@@ -43,7 +47,7 @@ vfspos real_ftell(void *fh)
 #  ifdef _MSC_VER
     return _ftelli64((FILE*)fh);
 #  else
-    return ftello64((FILE*)fh);
+    return ftello((FILE*)fh);
 #  endif
 #else
     return ftell((FILE*)fh);

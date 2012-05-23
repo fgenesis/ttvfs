@@ -40,7 +40,7 @@
 
 // These are used for small, temporary memory allocations that can remain on the stack.
 // If alloca is available, this is the preferred way.
-#include <malloc.h>
+#include <stdlib.h>
 #define VFS_STACK_ALLOC(size) alloca(size)
 #define VFS_STACK_FREE(ptr)   /* no need to free anything here */
 // Fail-safe:
