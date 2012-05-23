@@ -11,6 +11,7 @@
 #include "VFSDir.h"
 #include "VFSFile.h"
 #include "VFSLoader.h"
+#include "VFSArchiveLoader.h"
 
 #ifdef _DEBUG
 #  include <cassert>
@@ -52,7 +53,6 @@ bool _checkCompatInternal(bool large, bool nocase, bool hashmap, unsigned int vf
 VFSHelper::VFSHelper()
 : filesysRoot(NULL), merged(NULL)
 {
-    _ldrDiskId = _AddFixedLoader(); // NULL intentionally. created by LoadFileSysRoot()
 }
 
 VFSHelper::~VFSHelper()
@@ -71,26 +71,26 @@ void VFSHelper::Clear(void)
         filesysRoot = NULL; // ...but it may be referenced elsewhere, just in case
     }
 
-    for(unsigned int i = 0; i < preRoot.size(); ++i)
-        preRoot[i]->ref--;
-    preRoot.clear();
+    _ClearMountPoints();
 
-    for(unsigned int i = 0; i < postRoot.size(); ++i)
-        postRoot[i]->ref--;
-    postRoot.clear();
+    for(LoaderArray::iterator it = loaders.begin(); it != loaders.end(); ++it)
+        delete *it;
+    loaders.clear();
 
-    for(unsigned int i = 0; i < FixedLoadersCount(); ++i)
-        if(fixedLdrs[i])
-        {
-            delete fixedLdrs[i];
-            fixedLdrs[i] = NULL;
-        }
+    for(DirArray::iterator it = trees.begin(); it != trees.end(); ++it)
+        it->dir->ref--;
+    trees.clear();
+
+    for(ArchiveLoaderArray::iterator it = archLdrs.begin(); it != archLdrs.end(); ++it)
+        delete *it;
+    archLdrs.clear();
 }
 
-unsigned int VFSHelper::_AddFixedLoader(VFSLoader *ldr /* = NULL */)
+void VFSHelper::_ClearMountPoints(void)
 {
-    fixedLdrs.push_back(ldr);
-    return FixedLoadersCount() - 1;
+    for(VFSMountList::iterator it = vlist.begin(); it != vlist.end(); ++it)
+        it->vdir->ref--;
+    vlist.clear();
 }
 
 void VFSHelper::_cleanup(void)
@@ -101,64 +101,74 @@ void VFSHelper::_cleanup(void)
         merged->ref--;
         merged = NULL;
     }
-    for(VFSMountList::iterator it = vlist.begin(); it != vlist.end(); ++it)
-        it->vdir->ref--;
-    vlist.clear();
-    for(LoaderList::iterator it = dynLdrs.begin(); it != dynLdrs.end(); ++it)
-        delete *it;
-    dynLdrs.clear();
 }
 
-bool VFSHelper::LoadFileSysRoot(void)
+bool VFSHelper::LoadFileSysRoot(bool recursive)
 {
     VFS_GUARD_OPT(this);
-    VFSDirReal *oldroot = filesysRoot;
+
+    if(filesysRoot)
+        return !!filesysRoot->load(recursive);
 
     filesysRoot = new VFSDirReal(".");
-    if(!filesysRoot->load())
+    if(!filesysRoot->load(recursive))
     {
         filesysRoot->ref--;
-        filesysRoot = oldroot;
+        filesysRoot = NULL;
         return false;
     }
 
-    if(!fixedLdrs[_ldrDiskId])
-        fixedLdrs[_ldrDiskId] = new VFSLoaderDisk;
+    loaders.push_back(new VFSLoaderDisk);
 
-    if(oldroot)
-        oldroot->ref--;
+    BaseTreeEntry bt;
+    bt.source = "";
+    bt.dir = filesysRoot;
+    trees.push_back(bt);
+
+    AddVFSDir(filesysRoot, "");
 
     return true;
 }
 
+// TODO: deprecate this
 void VFSHelper::Prepare(bool clear /* = true */)
 {
     VFS_GUARD_OPT(this);
-    if(clear)
-        _cleanup();
-    if(!merged)
-    {
-        merged = new VFSDir("");
-    }
+
+    Reload(false, clear, false); // HACK
     
-    for(size_t i = 0; i < preRoot.size(); ++i)
-        merged->merge(preRoot[i]);
-    if(filesysRoot)
-        merged->merge(filesysRoot);
-    for(size_t i = 0; i < postRoot.size(); ++i)
-        merged->merge(postRoot[i]);
+    //for(DirArray::iterator it = trees.begin(); it != trees.end(); ++it)
+    //    merged->getDir((*it)->fullname(), true)->merge(*it);
 }
 
-void VFSHelper::Reload(bool fromDisk /* = false */)
+void VFSHelper::Reload(bool fromDisk /* = false */, bool clear /* = false */, bool clearMountPoints /* = false */)
 {
     VFS_GUARD_OPT(this);
-    if(fromDisk)
-        LoadFileSysRoot();
-    Prepare(false);
-    for(VFSMountList::iterator it = vlist.begin(); it != vlist.end(); ++it)
+    if(clearMountPoints)
+        _ClearMountPoints();
+    if(fromDisk && filesysRoot)
+        LoadFileSysRoot(true);
+    if(clear)
+        _cleanup();
+    if(!merged && trees.size())
     {
-        //printf("VFS: mount {%s} [%s] -> [%s] (overwrite: %d)\n", it->vdir->getType(), it->vdir->fullname(), it->mountPoint.c_str(), it->overwrite);
-        GetDir(it->mountPoint.c_str(), true)->merge(it->vdir, it->overwrite);
+        for(DirArray::iterator it = trees.begin(); it != trees.end(); ++it)
+            it->dir->clearMounted();
+
+        // FIXME: not sure if really correct
+        merged = trees[0].dir;
+        merged->ref++;
+
+        // FIXME: this is too hogging
+        //merged->load(true);
+    }
+    if(merged)
+    {
+        for(VFSMountList::iterator it = vlist.begin(); it != vlist.end(); ++it)
+        {
+            //printf("VFS: mount {%s} [%s] -> [%s] (overwrite: %d)\n", it->vdir->getType(), it->vdir->fullname(), it->mountPoint.c_str(), it->overwrite);
+            GetDir(it->mountPoint.c_str(), true)->merge(it->vdir, it->overwrite, VFSDir::MOUNTED);
+        }
     }
 }
 
@@ -175,12 +185,15 @@ bool VFSHelper::AddVFSDir(VFSDir *dir, const char *subdir /* = NULL */, bool ove
     VFS_GUARD_OPT(this);
     if(!subdir)
         subdir = dir->fullname();
+
+    VDirEntry ve(dir, subdir, overwrite);
+    _StoreMountPoint(ve);
+
     VFSDir *sd = GetDir(subdir, true);
     if(!sd) // may be NULL if Prepare() was not called before
         return false;
-    VDirEntry ve(dir, subdir, overwrite);
-    _StoreMountPoint(ve);
-    sd->merge(dir, overwrite); // merge into specified subdir. will be (virtually) created if not existing
+    sd->merge(dir, overwrite, VFSDir::MOUNTED); // merge into specified subdir. will be (virtually) created if not existing
+
     return true;
 }
 
@@ -194,7 +207,13 @@ bool VFSHelper::Unmount(const char *src, const char *dest)
     if(!_RemoveMountPoint(ve))
         return false;
 
-    Reload(false);
+    // FIXME: this could be done more efficiently by just reloading parts of the tree that were involved.
+    Reload(false, true, false);
+    //vd->load(true);
+    //vd->load(false);
+    /*VFSDir *dstdir = GetDir(dest, false);
+    if(dstdir)
+        dstdir->load(false);*/
     return true;
 }
 
@@ -240,9 +259,9 @@ bool VFSHelper::_RemoveMountPoint(const VDirEntry& ve)
 
 bool VFSHelper::MountExternalPath(const char *path, const char *where /* = "" */, bool overwrite /* = true */)
 {
-    // no guard required here, AddVFSDir has one, and the reference count is locked as well.
+    VFS_GUARD_OPT(this);
     VFSDirReal *vfs = new VFSDirReal(path);
-    if(vfs->load())
+    if(vfs->load(true))
         AddVFSDir(vfs, where, overwrite);
     return !!--(vfs->ref); // 0 if deleted
 }
@@ -250,7 +269,40 @@ bool VFSHelper::MountExternalPath(const char *path, const char *where /* = "" */
 void VFSHelper::AddLoader(VFSLoader *ldr)
 {
     VFS_GUARD_OPT(this);
-    dynLdrs.push_back(ldr);
+    loaders.push_back(ldr);
+}
+
+void VFSHelper::AddArchiveLoader(VFSArchiveLoader *ldr)
+{
+    VFS_GUARD_OPT(this);
+    archLdrs.push_back(ldr);
+}
+
+VFSDir *VFSHelper::AddArchive(const char *arch, bool asSubdir /* = true */, const char *subdir /* = NULL */, void *opaque /* = NULL */)
+{
+    VFSFile *af = GetFile(arch);
+    if(!af)
+        return NULL;
+
+    VFSDir *ad = NULL;
+    VFSLoader *fileLdr = NULL;
+    for(ArchiveLoaderArray::iterator it = archLdrs.begin(); it != archLdrs.end(); ++it)
+        if((ad = (*it)->Load(af, &fileLdr, opaque)))
+            break;
+    if(!ad)
+        return NULL;
+
+    if(fileLdr)
+        loaders.push_back(fileLdr);
+
+    BaseTreeEntry bt;
+    bt.source = arch;
+    bt.dir = ad;
+    trees.push_back(bt);
+
+    AddVFSDir(ad, subdir, true);
+
+    return ad;
 }
 
 inline static VFSFile *VFSHelper_GetFileByLoader(VFSLoader *ldr, const char *fn, const char *unmangled, VFSDir *root)
@@ -261,7 +313,7 @@ inline static VFSFile *VFSHelper_GetFileByLoader(VFSLoader *ldr, const char *fn,
     if(vf)
     {
         VFS_GUARD_OPT(vf);
-        root->addRecursive(vf, true);
+        root->addRecursive(vf, true, VFSDir::NONE);
         --(vf->ref);
     }
     return vf;
@@ -275,31 +327,20 @@ VFSFile *VFSHelper::GetFile(const char *fn)
 
     VFSFile *vf = NULL;
 
-    // guarded block
-    {
-        VFS_GUARD_OPT(this);
 
-        if(!merged) // Prepare() called?
-            return NULL;
+    VFS_GUARD_OPT(this);
 
-        vf = merged->getFile(fn);
-    }
+    if(!merged) // Prepare() called?
+        return NULL;
+
+    vf = merged->getFile(fn);
 
     // nothing found? maybe a loader has something.
     // if so, add the newly created VFSFile to the tree.
-    // constant, no locking required here - also a bad idea in case a loader does heavy I/O
     if(!vf)
-        for(unsigned int i = 0; i < fixedLdrs.size(); ++i)
-            if((vf = VFSHelper_GetFileByLoader(fixedLdrs[i], fn, unmangled, GetDirRoot())))
-                break;
-
-    if(!vf)
-    {
-        VFS_GUARD_OPT(this);
-        for(LoaderList::iterator it = dynLdrs.begin(); it != dynLdrs.end(); ++it)
+        for(LoaderArray::iterator it = loaders.begin(); it != loaders.end(); ++it)
             if((vf = VFSHelper_GetFileByLoader(*it, fn, unmangled, GetDirRoot())))
                 break;
-    }
 
     //printf("VFS: GetFile '%s' -> '%s' (%s:%p)\n", fn, vf ? vf->fullname() : "NULL", vf ? vf->getType() : "?", vf);
 
@@ -317,7 +358,7 @@ inline static VFSDir *VFSHelper_GetDirByLoader(VFSLoader *ldr, const char *fn, c
 
         VFS_GUARD_OPT(this);
         VFSDir *parent = parentname.empty() ? root : root->getDir(parentname.c_str(), true);
-        parent->insert(vd, true);
+        parent->insert(vd, true, VFSDir::NONE);
         --(vd->ref); // should delete it
 
         vd = root->getDir(fn); // can't return vd directly because it is cloned on insert+merge, and already deleted here
@@ -331,35 +372,22 @@ VFSDir *VFSHelper::GetDir(const char* dn, bool create /* = false */)
     std::string fixed = FixPath(dn);
     dn = fixed.c_str();
 
-    VFSDir *vd;
-    {
-        VFS_GUARD_OPT(this);
-        if(!merged)
-            return NULL;
-        if(!*dn)
-            return merged;
-        vd = merged->getDir(dn);
-    }
+    VFS_GUARD_OPT(this);
+    if(!merged)
+        return NULL;
+    if(!*dn)
+        return merged;
+    VFSDir *vd = merged->getDir(dn);
 
     if(!vd && create)
     {
-        for(unsigned int i = 0; i < fixedLdrs.size(); ++i)
-            if((vd = VFSHelper_GetDirByLoader(fixedLdrs[i], dn, unmangled, GetDirRoot())))
-                break;
-
         if(!vd)
-        {
-            VFS_GUARD_OPT(this);
-            for(LoaderList::iterator it = dynLdrs.begin(); it != dynLdrs.end(); ++it)
+            for(LoaderArray::iterator it = loaders.begin(); it != loaders.end(); ++it)
                 if((vd = VFSHelper_GetDirByLoader(*it, dn, unmangled, GetDirRoot())))
                     break;
-        }
 
         if(!vd)
-        {
-            VFS_GUARD_OPT(this);
             vd = merged->getDir(dn, true);
-        }
     }
 
     //printf("VFS: GetDir '%s' -> '%s' (%s:%p)\n", dn, vd ? vd->fullname() : "NULL", vd ? vd->getType() : "?", vd);
@@ -373,15 +401,26 @@ VFSDir *VFSHelper::GetDirRoot(void)
     return merged;
 }
 
+VFSDir *VFSHelper::GetBaseTree(const char *path)
+{
+    for(DirArray::iterator it = trees.begin(); it != trees.end(); ++it)
+        if(!casecmp(it->source.c_str(), path))
+            return it->dir;
+    return NULL;
+}
+
+
 void VFSHelper::ClearGarbage(void)
 {
+    for(DirArray::iterator it = trees.begin(); it != trees.end(); ++it)
+        it->dir->clearGarbage();
 }
 
 
 // DEBUG STUFF
 
 static void _DumpTreeRecursive(std::ostream& os, VFSDir *vd, const std::string& sp, VFSDir *parent)
-{
+{/*
     std::string sub = sp + "  ";
 
     os << sp << "d|" << vd->name() << " [" << vd->getType() << ", ref " << vd->ref.count() << ", 0x" << vd << "]";
@@ -412,7 +451,7 @@ static void _DumpTreeRecursive(std::ostream& os, VFSDir *vd, const std::string& 
         }
         if(p)
             os << std::endl;
-    }
+    }*/
 }
 
 void VFSHelper::debugDumpTree(std::ostream& os, VFSDir *start /* = NULL */)

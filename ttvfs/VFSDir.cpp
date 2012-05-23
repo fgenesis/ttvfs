@@ -1,6 +1,8 @@
 // VFSDir.cpp - basic directory interface + classes
 // For conditions of distribution and use, see copyright notice in VFS.h
 
+#include <set>
+
 #include "VFSInternal.h"
 #include "VFSTools.h"
 #include "VFSFile.h"
@@ -17,24 +19,24 @@ VFSDir::VFSDir(const char *fullpath)
 VFSDir::~VFSDir()
 {
     for(Files::iterator it = _files.begin(); it != _files.end(); ++it)
-        it->second->ref--;
+        it->second.ptr->ref--;
     for(Dirs::iterator it = _subdirs.begin(); it != _subdirs.end(); ++it)
-        it->second->ref--;
+        it->second.ptr->ref--;
+}
+
+unsigned int VFSDir::load(bool recursive)
+{
+    return 0;
 }
 
 VFSDir *VFSDir::createNew(const char *dir) const
 {
-    return new VFSDir(dir);
+    VFSDir *vd = new VFSDir(dir);
+    vd->_setOrigin(getOrigin());
+    return vd;
 }
 
-unsigned int VFSDir::load(const char *dir /* = NULL */)
-{
-    assert(false && "not overloaded VFSDir::load()");
-    return 0;
-}
-
-
-bool VFSDir::add(VFSFile *f, bool overwrite /* = true */)
+bool VFSDir::add(VFSFile *f, bool overwrite, EntryFlags flag)
 {
     if(!f)
         return false;
@@ -47,7 +49,7 @@ bool VFSDir::add(VFSFile *f, bool overwrite /* = true */)
     {
         if(overwrite)
         {
-            VFSFile *oldf = it->second;
+            VFSFile *oldf = it->second.ptr;
             if(oldf == f)
                 return false;
 
@@ -59,11 +61,11 @@ bool VFSDir::add(VFSFile *f, bool overwrite /* = true */)
     }
 
     f->ref++;
-    _files[f->name()] = f;
+    _files[f->name()] = MapEntry<VFSFile>(f, flag);
     return true;
 }
 
-bool VFSDir::addRecursive(VFSFile *f, bool overwrite /* = true */)
+bool VFSDir::addRecursive(VFSFile *f, bool overwrite, EntryFlags flag)
 {
     if(!f)
         return false;
@@ -85,45 +87,49 @@ bool VFSDir::addRecursive(VFSFile *f, bool overwrite /* = true */)
     else
         vdir = this;
 
-    return vdir->add(f, true);
+    return vdir->add(f, true, flag);
 }
 
-bool VFSDir::merge(VFSDir *dir, bool overwrite /* = true */)
+bool VFSDir::merge(VFSDir *dir, bool overwrite, EntryFlags flag)
 {
     if(!dir)
         return false;
+    if(dir == this)
+        return true; // nothing to do then
 
     bool result = false;
     VFS_GUARD_OPT(this);
 
     for(Files::iterator it = dir->_files.begin(); it != dir->_files.end(); ++it)
-        result = add(it->second, overwrite) || result;
+        result = add(it->second.ptr, overwrite, flag) || result;
 
     for(Dirs::iterator it = dir->_subdirs.begin(); it != dir->_subdirs.end(); ++it)
-        result = insert(it->second, overwrite) || result;
+        result = insert(it->second.ptr, overwrite, flag) || result;
     return result;
 }
 
-bool VFSDir::insert(VFSDir *subdir, bool overwrite /* = true */)
+bool VFSDir::insert(VFSDir *subdir, bool overwrite, EntryFlags flag)
 {
     if(!subdir)
         return false;
 
     VFS_GUARD_OPT(this);
+
+    // With load() cleaning up the tree, it is ok to add subsequent VFSDirs directly.
+    // This will be very useful at some point when files can be mounted into a directory
+    // belonging to an archive, and this way adding files to the archive.
     Dirs::iterator it = _subdirs.find(subdir->name());
-    VFSDir *mydir;
-    if(it != _subdirs.end())
+    if(it == _subdirs.end())
     {
-        mydir = it->second;
+        subdir->ref++;
+        _subdirs[subdir->name()] = MapEntry<VFSDir>(subdir, flag);
+        return true;
     }
     else
     {
-        // create a new subtree, not to pollute the original one with data that may be added later
-        mydir = subdir->createNew(subdir->fullname()); // create subdir of same type
-        _subdirs[mydir->name()] = mydir;
+        it->second.ptr->merge(subdir, overwrite, flag);
+        return false;
     }
-
-    return mydir->merge(subdir, overwrite);
 }
 
 VFSFile *VFSDir::getFile(const char *fn)
@@ -164,7 +170,7 @@ VFSFile *VFSDir::getFile(const char *fn)
             *slashpos = 0;
             it = subdir->_subdirs.find(ptr);
             if(it != subdir->_subdirs.end())
-                subdir = it->second; // found it
+                subdir = it->second.ptr; // found it
             else
                 subdir = NULL; // bail out
         }
@@ -176,13 +182,13 @@ VFSFile *VFSDir::getFile(const char *fn)
         ptr = fn + (ptr - dup);
 
         Files::iterator ft = subdir->_files.find(ptr);
-        return ft != subdir->_files.end() ? ft->second : NULL;
+        return ft != subdir->_files.end() ? ft->second.ptr : NULL;
     }
 
     // no subdir? file must be in this dir now.
     VFS_GUARD_OPT(this);
     Files::iterator it = _files.find(fn);
-    return it != _files.end() ? it->second : NULL;
+    return it != _files.end() ? it->second.ptr : NULL;
 }
 
 VFSDir *VFSDir::getDir(const char *subdir, bool forceCreate /* = false */)
@@ -206,25 +212,30 @@ VFSDir *VFSDir::getDir(const char *subdir, bool forceCreate /* = false */)
         Dirs::iterator it = _subdirs.find(t);
         if(it != _subdirs.end())
         {
-            ret = it->second->getDir(sub, forceCreate); // descend into subdirs
+            ret = it->second.ptr->getDir(sub, forceCreate); // descend into subdirs
         }
         else if(forceCreate)
         {
             // -> newname = fullname() + '/' + t
             size_t fullLen = fullnameLen();
-            char * const newname = (char*)VFS_STACK_ALLOC(fullLen + copysize + 2);
-            char *ptr = newname;
-            memcpy(ptr, fullname(), fullLen);
-            ptr += fullLen;
-            *ptr++ = '/';
-            memcpy(ptr, t, copysize);
-            ptr[copysize] = 0;
+            VFSDir *ins;
+            if(fullLen)
+            {
+                char * const newname = (char*)VFS_STACK_ALLOC(fullLen + copysize + 2);
+                char *ptr = newname;
+                memcpy(ptr, fullname(), fullLen);
+                ptr += fullLen;
+                *ptr++ = '/';
+                memcpy(ptr, t, copysize);
+                ptr[copysize] = 0;
+                ins = createNew(newname);
+                VFS_STACK_FREE(newname);
+            }
+            else
+                ins = createNew(t);
 
-            VFSDir *ins = createNew(newname);
             _subdirs[ins->name()] = ins;
             ret = ins->getDir(sub, true); // create remaining structure
-
-            VFS_STACK_FREE(newname);
         }
     }
     else
@@ -232,7 +243,7 @@ VFSDir *VFSDir::getDir(const char *subdir, bool forceCreate /* = false */)
         VFS_GUARD_OPT(this);
         Dirs::iterator it = _subdirs.find(subdir);
         if(it != _subdirs.end())
-            ret = it->second;
+            ret = it->second.ptr;
         else if(forceCreate)
         {
             size_t fullLen = fullnameLen();
@@ -263,6 +274,77 @@ VFSDir *VFSDir::getDir(const char *subdir, bool forceCreate /* = false */)
     return ret;
 }
 
+void VFSDir::clearMounted()
+{
+    for(FileIter it = _files.begin(); it != _files.end(); )
+    {
+        MapEntry<VFSFile>& e = it->second;
+        if(e.isMounted())
+        {
+            e.ptr->ref--;
+            _files.erase(it++);
+        }
+        else
+            ++it;
+    }
+    for(DirIter it = _subdirs.begin(); it != _subdirs.end(); )
+    {
+        MapEntry<VFSDir>& e = it->second;
+        if(e.isMounted())
+        {
+            e.ptr->ref--;
+            _subdirs.erase(it++);
+        }
+        else
+        {
+            it->second.ptr->clearMounted();
+            ++it;
+        }
+    }
+}
+
+template<typename T> static void iterIncref(T *b, void*) { ++(b->ref); }
+template<typename T> static void iterDecref(T *b, void*) { --(b->ref); }
+
+static void _iterDirs(VFSDir::Dirs &m, DirEnumCallback f, void *user)
+{
+    for(DirIter it = m.begin(); it != m.end(); ++it)
+        f(it->second.ptr, user);
+}
+
+void VFSDir::forEachDir(DirEnumCallback f, void *user /* = NULL */, bool safe /* = false */)
+{
+    VFS_GUARD_OPT(this);
+    if(safe)
+    {
+        Dirs cp = _subdirs;
+        _iterDirs(cp, iterIncref<VFSDir>, NULL);
+        _iterDirs(cp, f, user);
+        _iterDirs(cp, iterDecref<VFSDir>, NULL);
+    }
+    else
+        _iterDirs(_subdirs, f, user);
+}
+
+static void _iterFiles(VFSDir::Files &m, FileEnumCallback f, void *user)
+{
+    for(FileIter it = m.begin(); it != m.end(); ++it)
+        f(it->second.ptr, user);
+}
+
+void VFSDir::forEachFile(FileEnumCallback f, void *user /* = NULL */, bool safe /* = false */)
+{
+    VFS_GUARD_OPT(this);
+    if(safe)
+    {
+        Files cp = _files;
+        _iterFiles(cp, iterIncref<VFSFile>, NULL);
+        _iterFiles(cp, f, user);
+        _iterFiles(cp, iterDecref<VFSFile>, NULL);
+    }
+    else
+        _iterFiles(_files, f, user);
+}
 
 
 // ----- VFSDirReal start here -----
@@ -277,18 +359,29 @@ VFSDir *VFSDirReal::createNew(const char *dir) const
     return new VFSDirReal(dir);
 }
 
-unsigned int VFSDirReal::load(const char *dir /* = NULL */)
+unsigned int VFSDirReal::load(bool recursive)
 {
     VFS_GUARD_OPT(this);
+
+    Files remainF;
+    Dirs remainD;
+
+    remainF.swap(_files);
+    remainD.swap(_subdirs);
+
+    // _files, _subdirs now empty
 
     StringList li;
     GetFileList(fullname(), li);
     for(StringList::iterator it = li.begin(); it != li.end(); ++it)
     {
-        if(VFSFile *oldf = getFile(it->c_str()))
+        // file was already present, move over and erase
+        FileIter fi = remainF.find(it->c_str());
+        if(fi != remainF.end())
         {
-            _files.erase(oldf->name());
-            oldf->ref--;
+            _files[fi->first] = fi->second;
+            remainF.erase(fi);
+            continue;
         }
 
         // TODO: use stack alloc
@@ -304,10 +397,17 @@ unsigned int VFSDirReal::load(const char *dir /* = NULL */)
     GetDirList(fullname(), li, false);
     for(std::deque<std::string>::iterator it = li.begin(); it != li.end(); ++it)
     {
-        if(VFSDir *oldd = getDir(it->c_str()))
+        // subdir was already present, move over and erase
+        DirIter fi = remainD.find(it->c_str());
+        if(fi != remainD.end())
         {
-            _subdirs.erase(oldd->name());
-            oldd->ref--;
+            if(recursive)
+                sum += fi->second.ptr->load(true);
+            ++sum;
+
+            _subdirs[fi->first] = fi->second;
+            remainD.erase(fi);
+            continue;
         }
 
         // TODO: use stack alloc
@@ -316,9 +416,25 @@ unsigned int VFSDirReal::load(const char *dir /* = NULL */)
         full += *it; // GetDirList() always returns relative paths
 
         VFSDir *d = createNew(full.c_str());
-        sum += d->load();
+        if(recursive)
+            sum += d->load(true);
+        ++sum;
         _subdirs[d->name()] = d;
     }
+
+    // clean up & remove no longer existing files & dirs,
+    // and move over entries mounted here.
+    for(FileIter it = remainF.begin(); it != remainF.end(); ++it)
+        if(it->second.isMounted())
+            _files[it->first] = it->second;
+        else
+            it->second.ptr->ref--;
+    for(DirIter it = remainD.begin(); it != remainD.end(); ++it)
+        if(it->second.isMounted())
+            _subdirs[it->first] = it->second;
+        else
+            it->second.ptr->ref--;
+
     return sum;
 }
 

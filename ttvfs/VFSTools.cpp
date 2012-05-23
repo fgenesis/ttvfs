@@ -2,11 +2,14 @@
 // For conditions of distribution and use, see copyright notice in VFS.h
 
 #include "VFSInternal.h"
+#include "VFSFileFuncs.h"
 
 #include <cstdlib>
 #include <algorithm>
 #include <cctype>
 #include <stack>
+#include <cstdio>
+
 #include "VFSTools.h"
 
 
@@ -208,10 +211,10 @@ void GetDirList(const char *path, StringList &dirs, bool recursive /* = false */
 bool FileExists(const char *fn)
 {
 #ifdef _WIN32
-    FILE *fp = fopen(fn, "rb");
+    void *fp = real_fopen(fn, "rb");
     if(fp)
     {
-        fclose(fp);
+        real_fclose(fp);
         return true;
     }
     return false;
@@ -258,12 +261,12 @@ vfspos GetFileSize(const char* fn)
 {
     if(!fn || !*fn)
         return 0;
-    FILE *fp = fopen(fn, "rb");
+    void *fp = real_fopen(fn, "rb");
     if(!fp)
         return 0;
-    fseek(fp, 0, SEEK_END);
-    vfspos s = (vfspos)ftell(fp);
-    fclose(fp);
+    real_fseek(fp, 0, SEEK_END);
+    vfspos s = real_ftell(fp);
+    real_fclose(fp);
 
     return s == npos ? 0 : s;
 }

@@ -1,15 +1,15 @@
 
 /* ttvfs example #1 - the most simple way to get started */
 
-#include <cstdio>
 #include <VFS.h>
+#include <cstdio>
 
 int main(int argc, char *argv[])
 {
     ttvfs::VFSHelper vfs;
 
     // Load all files from all subdirs, recursively
-    vfs.LoadFileSysRoot();
+    vfs.LoadFileSysRoot(true);
 
     // Make the VFS usable
     vfs.Prepare();

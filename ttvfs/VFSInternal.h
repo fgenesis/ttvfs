@@ -14,31 +14,44 @@
 #include "VFSDefines.h"
 
 #if _MSC_VER
+# ifndef _CRT_SECURE_NO_WARNINGS
 #   define _CRT_SECURE_NO_WARNINGS
+# endif
+#ifndef _CRT_SECURE_NO_DEPRECATE
 #   define _CRT_SECURE_NO_DEPRECATE
-#   pragma warning(disable: 4355) // 'this' : used in base member initializer list
 #endif
-
-// this is for POSIX - define before including any stdio headers
-#ifdef VFS_LARGEFILE_SUPPORT
-#    ifndef _MSC_VER
-#        define _FILE_OFFSET_BITS 64
-#    endif
+#   pragma warning(disable: 4355) // 'this' : used in base member initializer list
 #endif
 
 
 #include <cstdlib>
-#include <cstdio>
 #include <cstring>
 #include <string>
 #include <cassert>
 
-// this is for MSVC - re-define functions
-#ifdef VFS_LARGEFILE_SUPPORT
-#    ifdef _MSC_VER
-#        define fseek _fseeki64
-#        define ftell _ftelli64
-#    endif
-#endif
+VFS_NAMESPACE_START
+
+inline char *allocHelper(allocator_func alloc, size_t size)
+{
+    return alloc ? (char*)alloc(size) : new char[size];
+}
+
+inline char *allocHelperExtra(allocator_func alloc, size_t size, size_t extra)
+{
+    char *p = (char*)allocHelper(alloc, size + extra);
+    memset(p + size, 0, extra);
+    return p;
+}
+
+template <typename T> inline void deleteHelper(delete_func deletor, T *mem)
+{
+    if(deletor)
+        deletor(mem);
+    else
+        delete [] mem;
+}
+
+
+VFS_NAMESPACE_END
 
 #endif

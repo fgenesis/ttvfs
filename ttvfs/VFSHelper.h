@@ -4,9 +4,7 @@
 #ifndef VFSHELPER_H
 #define VFSHELPER_H
 
-#include <set>
 #include <vector>
-#include <deque>
 #include <list>
 #include <string>
 #include <iostream>
@@ -20,39 +18,10 @@ class VFSDir;
 class VFSDirReal;
 class VFSFile;
 class VFSLoader;
+class VFSArchiveLoader;
 
 
-/** VFSHelper - extensible class to simplify working with the VFS tree
-  * Contains a set of useful functions that should be useful for anyone.
-  * This class may be overridden to support adding any source in a comfortable way.
-  * 
-  * Note: This class uses VFS_LAST_HELPER_CLASS, which should always store the last
-  * class derived from VFSHelper. This is supposed to make it easy to make extensions like this:
-
-#include "VFSHelperExtra.h" // defines a VFSHelperExtra class that is somehow derived from VFSHelper
-                            // and follows the same rules as explained below.
-
-class VFSHelperArchive : public VFS_LAST_HELPER_CLASS
-{
-private:
-    typedef VFS_LAST_HELPER_CLASS super;
-public:
-    // .... class members ....
-};
-
-#undef VFS_LAST_HELPER_CLASS
-#define VFS_LAST_HELPER_CLASS VFSHelperArchive
-
-
-  * Used this way, only the order in which VFSHelper extension classes are included matters.
-  * No code changes are required to get a nice inheritance and priority chain working.
-  *
-*/
-
-#ifdef VFS_LAST_HELPER_CLASS
-#  error VFS_LAST_HELPER_CLASS defined before VFSHelper class decl, check your include order!
-#endif
-
+/** VFSHelper - extensible class to simplify working with the VFS tree */
 class VFSHelper
 {
 public:
@@ -61,15 +30,18 @@ public:
 
     /** Creates the working tree. Required before any files or directories can be accessed.
         Internally, it merges all individual VFS trees into one. If clear is true (default),
-        an existing merged tree is dropped, and old and previously added files and loaders removed.
-        (This is the recommended setting.) */
+        an existing merged tree is dropped, and old and previously added files removed.
+        (This is the recommended setting.)
+        Mount points and loaders are kept.*/
     virtual void Prepare(bool clear = true);
 
     /** Re-merges any files in the tree, and optionally reloads files on disk.
-        This is useful if files on disk were created or removed, and the tree needs to reflect these changes. */
-    virtual void Reload(bool fromDisk = false);
+        This is useful if files on disk were created or removed, and the tree needs to reflect these changes.
+        Calls Prepare(clear) internally. */
+    virtual void Reload(bool fromDisk = false, bool clear = false, bool clearMountPoints = false);
 
-    /** Reset an instance to its initial state */
+    /** Reset an instance to its initial state.
+        Drops all archives, loaders, archive loaders, mount points, internal trees, ...*/
     virtual void Clear(void);
 
     /** Do cleanups from time to time. In base VFSHelper, this is a no-op.
@@ -77,7 +49,7 @@ public:
     virtual void ClearGarbage(void);
 
     /** Load all files from working directory (into an internal tree) */
-    bool LoadFileSysRoot(void);
+    bool LoadFileSysRoot(bool recursive);
 
     /** Mount a directory in the tree to a different location. Requires a previous call to Prepare().
         This can be imagined like a symlink pointing to a different location.
@@ -104,10 +76,26 @@ public:
         Like with Mount(); be careful not to create cycles. */
     bool AddVFSDir(VFSDir *dir, const char *subdir = NULL, bool overwrite = true);
 
+    /** Add the contents of an archive file to the tree. By default, the archive can be addressed
+        like a folder, e.g. "path/to/example.zip/file.txt".
+        Set asSubdir to false to "unpack" the contents of the archive to the containing folder.
+        Optionally, the target subdir to mount into can be specified. (See AddVFSDir().)
+        Returns a pointer to the actual VFSDir object that represents the added archive, or NULL if failed.
+        The opaque pointer is passed directly to each loader and can contain additional parameters,
+        such as a password to open the file.
+        Read the comments in VFSArchiveLoader.h for an explanation how it works. If you have no idea, leave it NULL,
+        because it can easily cause a crash if not used carefully. */
+    VFSDir *AddArchive(const char *arch, bool asSubdir = true, const char *subdir = NULL, void *opaque = NULL);
+
     /** Add a loader that can look for files on demand.
-        It will be deleted if Prepare(true) is called.
         It is possible (but not a good idea) to add a loader multiple times. */
-    inline void AddLoader(VFSLoader *ldr);
+    void AddLoader(VFSLoader *ldr);
+
+    /** Add an archive loader that can open archives of various types.
+        Whenever an archive file is requested to be opened by AddArchive(),
+        it is sent through each registered loader until one of them can recognize
+        the format and open it. An archive loader stays once registered. */
+    void AddArchiveLoader(VFSArchiveLoader *ldr);
     
     /** Get a file from the merged tree. Requires a previous call to Prepare().
         Asks loaders if the file is not in the tree. If found by a loader, the file will be added to the tree.
@@ -125,13 +113,13 @@ public:
     /** Returns the tree root, which is usually the working directory. */
     VFSDir *GetDirRoot(void);
 
+    /** Returns one of the root tree sources by their internal name. */
+    VFSDir *GetBaseTree(const char *path);
+
     /** Remove a file or directory from the tree */
     //bool Remove(VFSFile *vf);
     //bool Remove(VFSDir *dir);
     //bool Remove(const char *name); // TODO: CODE ME
-
-    /** This depends on the class type and stays constant. */
-    inline unsigned int FixedLoadersCount(void) const { return (unsigned int)fixedLdrs.size(); }
 
     inline void lock() { _mtx.Lock(); }
     inline void unlock() { _mtx.Unlock(); }
@@ -142,12 +130,9 @@ public:
 
 protected:
 
-    /** Drops the merged tree and additional mount points and dynamic loaders.
+    /** Drops the merged tree and allows fully re-creating it.
         Overload to do additional cleanup if required. Invoked by Clear() and Prepare(true). */
     virtual void _cleanup(void);
-
-    /** Add a fixed VFSLoader. Returns its array index in fixedLdrs. */
-    unsigned int _AddFixedLoader(VFSLoader *ldr = NULL);
 
     struct VDirEntry
     {
@@ -158,41 +143,41 @@ protected:
         bool overwrite;
     };
 
+    struct BaseTreeEntry
+    {
+        std::string source;
+        VFSDir *dir;
+    };
+
     typedef std::list<VDirEntry> VFSMountList;
     typedef std::vector<VFSLoader*> LoaderArray;
-    typedef std::deque<VFSLoader*> LoaderList;
-    typedef std::vector<VFSDir*> DirArray;
+    typedef std::vector<VFSArchiveLoader*> ArchiveLoaderArray;
+    typedef std::vector<BaseTreeEntry> DirArray;
 
 
     void _StoreMountPoint(const VDirEntry& ve);
-
     bool _RemoveMountPoint(const VDirEntry& ve);
+    void _ClearMountPoints(void);
 
     // the VFSDirs are merged in their declaration order.
     // when merging, files already contained can be overwritten by files merged in later.
     VFSDirReal *filesysRoot; // local files on disk (root dir)
 
-    // Additional tree stores, to be filled by subclasses if needed.
-    DirArray preRoot; // VFSDirs in here will be merged in, before the actual disk files.
-                      // Means files on disk will overwrite existing entries.
-    DirArray postRoot; // Will be merged after the disk files, and overwrite prev. merged files.
-    // Both may contain NULLs.
+    // VFSDirs from various sources are stored here, and will be merged into one final tree
+    // by Prepare().
+    DirArray trees;
 
-    // if files are not in the tree, maybe one of these is able to find it. May contain NULLs.
-    LoaderArray fixedLdrs; // defined by class type, stays constant during object lifetime
-    LoaderList dynLdrs; // dynamically added on demand, deleted on _cleanup()
+    // If files are not in the tree, maybe one of these is able to find it.
+    LoaderArray loaders;
 
     VFSDir *merged; // contains the merged virtual/actual file system tree
 
     mutable Mutex _mtx;
 
 private:
-    unsigned int _ldrDiskId;
-    VFSMountList vlist; // all other dirs added later, together with path to mount to
+    VFSMountList vlist; // all other trees added later, together with path to mount to
+    ArchiveLoaderArray archLdrs;
 };
-
-#undef VFS_LAST_HELPER_CLASS
-#define VFS_LAST_HELPER_CLASS VFSHelper
 
 VFS_NAMESPACE_END
 

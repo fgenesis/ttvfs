@@ -60,10 +60,6 @@ public:
         The pointer returned by getBuf() must not change. */
     virtual vfspos size(void) { return npos; }
 
-    /** Attempt to increase file size. Returns new size after completion.
-        May return any size. Failure is indicated by a size() that didn't change. */
-    virtual vfspos size(vfspos newsize) { return size(); }
-
     /** Return full file content in memory. Like size(), this may do other operations on the file,
         but after the function returns the file is expected to be in the same state it was before.
         If the file is not open before the call, it will be opened with default parameters (that is, "rb").
@@ -89,7 +85,7 @@ public:
     /** Uses the deletion function earlier given to getBuf() to free the given memory,
         or delete [] if the function is NULL. Useful if the original function
         that was used to allocate the buffer is no longer known. */
-    void delBuf(const void *mem) const;
+    void delBuf(void *mem);
 
 
 protected:

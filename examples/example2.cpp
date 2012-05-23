@@ -23,6 +23,15 @@ static void PrintFile(const char *fn)
     }
 }
 
+static void FileCallback(ttvfs::VFSFile *vf, void *user)
+{
+    std::cout << "File: " << vf->name() << " --> " << vf->fullname() << std::endl;
+
+    // Known to be an int ptr.
+    unsigned int *c = (unsigned int*)user;
+    ++(*c);
+}
+
 int main(int argc, char *argv[])
 {
     // this should be checked, especially in larger projects
@@ -32,7 +41,10 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    vfs.LoadFileSysRoot();
+    // Note: Here, it is really important that all files & subdirs are loaded recursively.
+    // In the merge step below, only those files that already exist in the tree will be
+    // accessible in their new location.
+    vfs.LoadFileSysRoot(true);
     vfs.Prepare();
     
     PrintFile("myfile.txt"); // this is the default file
@@ -41,8 +53,8 @@ int main(int argc, char *argv[])
     std::cout << "-- Mounting 'patches' -> ''" << std::endl;
 
     // merge "patches" into root dir
-    //vfs.AddPath("patches"); // this works, but recreates parts of the tree
-                              // that are already existing - possibly error prone!
+    //vfs.MountExternalPath("patches"); // this works, but recreates parts of the tree
+                                        // that are already existing - possibly error prone!
 
     vfs.Mount("patches", ""); // <-- this is the better way.
     // all files and subdirs that were in "patches" are now mirrored in "" as well.
@@ -70,8 +82,10 @@ int main(int argc, char *argv[])
 
         std::cout << "Listing files in 'ext' subdir ..." << std::endl;
 
-        for(ttvfs::FileIter it = ext->fileIter(); it != ext->fileIterEnd(); ++it)
-            std::cout << it->second->name() << " --> " << it->second->fullname() << std::endl;
+        unsigned int c = 0;
+        ext->forEachFile(FileCallback, &c);
+
+        std::cout << c << " files in total!" << std::endl;
     }
     
     return 0;

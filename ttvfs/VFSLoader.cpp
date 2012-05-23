@@ -113,7 +113,7 @@ VFSDir *VFSLoaderDisk::LoadDir(const char *fn, const char * /*ignored*/)
     if(IsDirectory(fn))
     {
         ret = new VFSDirReal(fn); // must contain full file name
-        ret->load();
+        ret->load(true);
     }
 
 #if !defined(_WIN32) && defined(VFS_IGNORE_CASE)

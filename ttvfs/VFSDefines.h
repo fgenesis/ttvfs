@@ -21,7 +21,7 @@
 // (no sane programmer should do this, anyway).
 // However, on non-windows systems this will decrease performance when checking for files
 // on disk (see VFSLoader.cpp).
-#define VFS_IGNORE_CASE
+//#define VFS_IGNORE_CASE
 
 // Define this to make all VFSFile, VFSDir, VFSHelper operations thread-safe.
 // If you do, do not forget to add your own implementation to VFSAtomic.cpp/.h !
@@ -36,7 +36,7 @@
 // With std::map, iterating over entries will always deliver them in sorted order.
 // The hashmap will deliver entries in random order, but lookup will be much faster
 // (especially if VFS_IGNORE_CASE is set!)
-#define VFS_USE_HASHMAP
+//#define VFS_USE_HASHMAP
 
 // These are used for small, temporary memory allocations that can remain on the stack.
 // If alloca is available, this is the preferred way.
@@ -82,7 +82,7 @@ VFS_NAMESPACE_START
 #    define VFS_GUARD_OPT(obj)
 #endif
 
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) || defined(__MINGW32__) || defined(__MINGW64__)
 #    define VFS_STRICMP stricmp
 #else
 #    define VFS_STRICMP strcasecmp

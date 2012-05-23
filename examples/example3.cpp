@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
     ReadAndPrint<std::ifstream>("mydata.txt");
 
     // the obligatory VFS initialization
-    vfs.LoadFileSysRoot();
+    vfs.LoadFileSysRoot(true);
     vfs.Prepare();
 
     // second read, using the VFS. Same code.

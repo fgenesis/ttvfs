@@ -71,12 +71,7 @@ VFS_NAMESPACE_END
 #include "VFSDir.h"
 
 
-// Checks to enforce correct including.
-// At least on windows, <string> includes <cstdio>,
-// but that must be included after "VFSInternal.h",
-// and "VFSInternal.h" may only be used inside the library (or by extensions),
-// because it redefines fseek and ftell, which would
-// mess up the ABI if included elsewhere.
+// Check to enforce correct including.
 #ifdef VFS_INTERNAL_H
 #error Oops, VFS_INTERNAL_H is defined, someone messed up and included VFSInternal.h wrongly.
 #endif
