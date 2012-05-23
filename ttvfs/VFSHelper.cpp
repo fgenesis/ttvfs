@@ -426,46 +426,57 @@ void VFSHelper::ClearGarbage(void)
 }
 
 
+
 // DEBUG STUFF
 
-static void _DumpTreeRecursive(std::ostream& os, VFSDir *vd, const std::string& sp, VFSDir *parent)
-{/*
-    std::string sub = sp + "  ";
 
-    os << sp << "d|" << vd->name() << " [" << vd->getType() << ", ref " << vd->ref.count() << ", 0x" << vd << "]";
+struct _DbgParams
+{
+    _DbgParams(std::ostream& os_, VFSDir *parent_, const std::string& sp_)
+        : os(os_), parent(parent_), sp(sp_) {}
 
-    if(parent && strncmp(parent->fullname(), vd->fullname(), strlen(parent->fullname())))
-        os << " <-- {" << vd->fullname() << "} ***********";
-    os << std::endl;
+    std::ostream& os;
+    VFSDir *parent;
+    const std::string& sp;
+};
 
-    for(DirIter it = vd->_subdirs.begin(); it != vd->_subdirs.end(); ++it)
-        _DumpTreeRecursive(os, it->second, sub, vd);
+static void _DumpFile(VFSFile *vf, void *user)
+{
+    _DbgParams& p = *((_DbgParams*)user);
 
-    for(FileIter it = vd->_files.begin(); it != vd->_files.end(); ++it)
-    {
-        VFSFile *vf = it->second;
-        // only if refcount and/or mount point differs
-        bool p = false;
-        if(vf->ref.count() != vd->ref.count())
-        {
-            doprint:
-            os << sub << "f|" << vf->name() << " [" << vf->getType() << ", ref " << vf->ref.count() << ", 0x" << vf << "]";
-            p = true;
-        }
-        if(strncmp(vd->fullname(), vf->fullname(), strlen(vd->fullname())))
-        {
-            if(!p)
-                goto doprint;
-            os << " <-- {" << vf->fullname() << "} ***********";
-        }
-        if(p)
-            os << std::endl;
-    }*/
+    p.os << p.sp << "f|" << vf->name() << " [" << vf->getType() << ", ref " << vf->ref.count() << ", 0x" << vf << "]";
+
+    if(strncmp(p.parent->fullname(), vf->fullname(), p.parent->fullnameLen()))
+        p.os << " <-- {" << vf->fullname() << "} ***********";
+
+    p.os << std::endl;
+}
+
+static void _DumpTreeRecursive(VFSDir *vd, void *user)
+{
+    _DbgParams& p = *((_DbgParams*)user);
+
+    std::string sub = p.sp + "  ";
+
+    p.os << p.sp << "d|" << vd->name() << " [" << vd->getType() << ", ref " << vd->ref.count() << ", 0x" << vd << "]";
+
+    if(p.parent && strncmp(p.parent->fullname(), vd->fullname(), strlen(p.parent->fullname())))
+        p.os << " <-- {" << vd->fullname() << "} ***********";
+    p.os << std::endl;
+
+    _DbgParams recP(p.os, vd, sub);
+
+    vd->forEachDir(_DumpTreeRecursive, &recP);
+
+    vd->forEachFile(_DumpFile, &recP);
+
 }
 
 void VFSHelper::debugDumpTree(std::ostream& os, VFSDir *start /* = NULL */)
 {
-    _DumpTreeRecursive(os, start ? start : GetDirRoot(), "", NULL);
+    _DbgParams recP(os, NULL, "");
+    VFSDir *d = start ? start : GetDirRoot();
+    _DumpTreeRecursive(d, &recP);
 }
 
 

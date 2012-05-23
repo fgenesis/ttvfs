@@ -42,5 +42,9 @@ int main(int argc, char *argv[])
     // List all files
     vd->forEachFile(FileCallback);
 
+    // Some more testing.
+    vfs.debugDumpTree(std::cout);
+
+
     return 0;
 }
