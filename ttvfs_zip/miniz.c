@@ -880,6 +880,7 @@ typedef unsigned char mz_validate_uint64[sizeof(mz_uint64)==8 ? 1 : -1];
   #define MZ_READ_LE32(p) ((mz_uint32)(((const mz_uint8 *)(p))[0]) | ((mz_uint32)(((const mz_uint8 *)(p))[1]) << 8U) | ((mz_uint32)(((const mz_uint8 *)(p))[2]) << 16U) | ((mz_uint32)(((const mz_uint8 *)(p))[3]) << 24U))
 #endif
 
+/*
 #if !defined(_MSC_VER) && !defined(__MINGW32__) && !defined(__MINGW64__) && !defined(__forceinline)
   #ifdef __cplusplus
     #define __forceinline inline
@@ -887,6 +888,10 @@ typedef unsigned char mz_validate_uint64[sizeof(mz_uint64)==8 ? 1 : -1];
     #define __forceinline
   #endif
 #endif
+*/
+
+#undef __forceinline
+#define __forceinline
 
 #ifdef __cplusplus
   extern "C" {
