@@ -41,8 +41,8 @@
 // These are used for small, temporary memory allocations that can remain on the stack.
 // If alloca is available, this is the preferred way.
 #include <stdlib.h>
-#ifdef _MSC_VER
-#  include <malloc.h> // MSVC still needs this for alloca
+#ifdef _WIN32
+#  include <malloc.h> // MSVC/MinGW still need this for alloca. Seems to be windows-specific failure
 #endif
 #define VFS_STACK_ALLOC(size) alloca(size)
 #define VFS_STACK_FREE(ptr)   /* no need to free anything here */
