@@ -296,6 +296,8 @@ std::string FixPath(const std::string& s)
     const char *p = s.c_str();
     while(p[0] == '.' && (p[1] == '/' || p[1] == '\\'))
         p += 2;
+    if(!*p)
+        return "";
     char end = s[s.length() - 1];
     if(end == '/' || end == '\\')
     {

@@ -80,7 +80,9 @@ bool VFSFileZip::iseof(void) const
 
 bool VFSFileZip::close(void)
 {
-    return flush(); // TODO: write to zip file on close
+    //return flush(); // TODO: write to zip file on close
+
+    return true;
 }
 
 bool VFSFileZip::seek(vfspos pos)
