@@ -13,10 +13,12 @@ static bool zip_reader_reopen_vfsfile(mz_zip_archive *pZip, mz_uint32 flags)
 {
     if(!(pZip && pZip->m_pIO_opaque && pZip->m_pRead))
         return false;
+    VFSFile *vf = (VFSFile*)pZip->m_pIO_opaque;
+    if(!vf->isopen())
+        if(!vf->open("rb"))
+            return false;
     if(pZip->m_zip_mode == MZ_ZIP_MODE_READING)
         return true;
-    VFSFile *vf = (VFSFile*)pZip->m_pIO_opaque;
-    vf->open("rb");
     mz_uint64 file_size = vf->size();
     if(!file_size)
     {
@@ -160,8 +162,10 @@ const void *VFSFileZip::getBuf(allocator_func alloc /* = NULL */, delete_func de
             return NULL;
         _delfunc = del;
 
-        zip_reader_reopen_vfsfile(_zip, 0);
-        mz_zip_reader_extract_to_mem(_zip, _zipstat.m_file_index, _buf, sz, 0);
+        if(!zip_reader_reopen_vfsfile(_zip, 0))
+            return false; // can happen if the underlying zip file was deleted
+        if(!mz_zip_reader_extract_to_mem(_zip, _zipstat.m_file_index, _buf, sz, 0))
+            return false; // this should not happen
 
         if(_mode.find("b") == std::string::npos) // text mode?
         {
