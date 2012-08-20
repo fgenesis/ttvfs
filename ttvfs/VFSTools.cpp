@@ -246,8 +246,10 @@ bool CreateDirRec(const char *dir)
     StringList li;
     StrSplit(dir, "/\\", li, false);
     std::string d;
-    d.reserve(strlen(dir));
-    bool last;
+    d.reserve(strlen(dir) + 1);
+    if(*dir == '/')
+        d += '/';
+    bool last = false;
     for(StringList::iterator it = li.begin(); it != li.end(); ++it)
     {
         d += *it;
