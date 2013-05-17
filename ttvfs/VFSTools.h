@@ -1,6 +1,9 @@
 // VFSTools.h - useful functions and misc stuff
 // For conditions of distribution and use, see copyright notice in VFS.h
 
+// Not all of these functions are used by ttvfs, but are added for user convenience.
+// Everyone needs some path/file mangling functions at some point.
+
 #ifndef VFS_TOOLS_H
 #define VFS_TOOLS_H
 
@@ -13,10 +16,8 @@ VFS_NAMESPACE_START
 
 typedef std::deque<std::string> StringList;
 
-std::string stringToUpper(const std::string& s);
-std::string stringToLower(const std::string& s);
-void makeUppercase(std::string& s);
-void makeLowercase(std::string& s);
+void stringToUpper(std::string& s);
+void stringToLower(std::string& s);
 void GetFileList(const char *, StringList& files);
 void GetDirList(const char *, StringList& dirs, bool recursive = false);
 bool FileExists(const char *);

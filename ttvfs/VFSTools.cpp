@@ -26,24 +26,12 @@
 
 VFS_NAMESPACE_START
 
-std::string stringToLower(std::string s)
-{
-    std::transform(s.begin(), s.end(), s.begin(), tolower);
-    return s;
-}
-
-std::string stringToUpper(std::string s)
-{
-    std::transform(s.begin(), s.end(), s.begin(), toupper);
-    return s;
-}
-
-void makeLowercase(std::string& s)
+void stringToLower(std::string& s)
 {
     std::transform(s.begin(), s.end(), s.begin(), tolower);
 }
 
-void makeUppercase(std::string& s)
+void stringToUpper(std::string& s)
 {
     std::transform(s.begin(), s.end(), s.begin(), toupper);
 }
@@ -160,9 +148,11 @@ void GetDirList(const char *path, StringList &dirs, bool recursive /* = false */
                     dirs.push_back(dp->d_name);
                     if (recursive) // needing a better way to do that
                     {
-                        std::deque<std::string> newdirs;
-                        GetDirList(dp->d_name, newdirs, true);
-                        std::string d(dp->d_name);
+                        std::string d = dp->d_name:
+                        std::string subdir = pathstr + d;
+                        MakeSlashTerminated(d);
+                        StringList newdirs;
+                        GetDirList(subdir.c_str(), newdirs, true);
                         for(std::deque<std::string>::iterator it = newdirs.begin(); it != newdirs.end(); ++it)
                             dirs.push_back(d + *it);
                     }
@@ -173,12 +163,10 @@ void GetDirList(const char *path, StringList &dirs, bool recursive /* = false */
     }
 
 #else
-
-    std::string search(path);
-    MakeSlashTerminated(search);
-    search += "*";
+    std::string pathstr(path);
+    MakeSlashTerminated(pathstr);
     WIN32_FIND_DATA fil;
-    HANDLE hFil = FindFirstFile(search.c_str(),&fil);
+    HANDLE hFil = FindFirstFile((pathstr + '*').c_str(),&fil);
     if(hFil != INVALID_HANDLE_VALUE)
     {
         do
@@ -188,14 +176,15 @@ void GetDirList(const char *path, StringList &dirs, bool recursive /* = false */
                 if (!strcmp(fil.cFileName, ".") || !strcmp(fil.cFileName, ".."))
                     continue;
 
-                std::string d(fil.cFileName);
-                dirs.push_back(d);
-
+                dirs.push_back(fil.cFileName);
+                
                 if (recursive) // need a better way to do that
                 {
+                    std::string d = fil.cFileName;
+                    std::string subdir = pathstr + d;
+                    MakeSlashTerminated(d);
                     StringList newdirs;
-                    GetDirList(d.c_str(), newdirs, true);
-
+                    GetDirList(subdir.c_str(), newdirs, true);
                     for(std::deque<std::string>::iterator it = newdirs.begin(); it != newdirs.end(); ++it)
                         dirs.push_back(d + *it);
                 }
@@ -432,7 +421,8 @@ bool WildcardMatch(const char *str, const char *pattern)
     {
         if(*pattern != *str && *pattern != '?')
             return false;
-        pattern++, str++;
+        ++pattern;
+        ++str;
     }
 
     while(*str)
@@ -440,7 +430,7 @@ bool WildcardMatch(const char *str, const char *pattern)
         if(*pattern == '*')
         {
             if(!*++pattern)
-                return 1;
+                return true;
             mp = pattern;
             cp = str + 1;
         }
@@ -456,7 +446,8 @@ bool WildcardMatch(const char *str, const char *pattern)
         }
     }
 
-    while(*pattern++ == '*');
+    while(*pattern == '*')
+        ++pattern;
 
     return !*pattern;
 }
