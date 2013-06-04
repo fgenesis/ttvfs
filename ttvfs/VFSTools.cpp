@@ -139,6 +139,8 @@ void GetDirList(const char *path, StringList &dirs, bool recursive /* = false */
     dirp = opendir(path);
     if(dirp)
     {
+        std::string pathstr(path);
+        MakeSlashTerminated(pathstr);
         while((dp = readdir(dirp))) // assignment is intentional
         {
             if (_IsDir(path, dp)) // only add if it is a directory
@@ -148,7 +150,7 @@ void GetDirList(const char *path, StringList &dirs, bool recursive /* = false */
                     dirs.push_back(dp->d_name);
                     if (recursive) // needing a better way to do that
                     {
-                        std::string d = dp->d_name:
+                        std::string d = dp->d_name;
                         std::string subdir = pathstr + d;
                         MakeSlashTerminated(d);
                         StringList newdirs;
@@ -177,7 +179,7 @@ void GetDirList(const char *path, StringList &dirs, bool recursive /* = false */
                     continue;
 
                 dirs.push_back(fil.cFileName);
-                
+
                 if (recursive) // need a better way to do that
                 {
                     std::string d = fil.cFileName;
