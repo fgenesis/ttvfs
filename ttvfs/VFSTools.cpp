@@ -385,7 +385,7 @@ void GetFileListRecursive(std::string dir, StringList& files, bool withQueriedDi
                 files.push_back(dir + *it);
 
             li.clear();
-            GetDirList(dir.c_str(), li, true);
+            GetDirList(dir.c_str(), li, false);
             for(std::deque<std::string>::iterator it = li.begin(); it != li.end(); ++it)
                 stk.push(dir + *it);
         }
@@ -408,7 +408,7 @@ void GetFileListRecursive(std::string dir, StringList& files, bool withQueriedDi
                 files.push_back(dir + *it);
 
             li.clear();
-            GetDirList(dir.c_str(), li, true);
+            GetDirList(dir.c_str(), li, false);
             for(std::deque<std::string>::iterator it = li.begin(); it != li.end(); ++it)
                 stk.push(dir + *it);
         }
