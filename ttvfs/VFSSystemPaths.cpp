@@ -11,26 +11,27 @@ VFS_NAMESPACE_START
 
 std::string GetUserDir()
 {
+    const char *user;
 #ifdef _WIN32
     TCHAR szPath[MAX_PATH];
-    if(SUCCEEDED(SHGetFolderPath(NULL, CSIDL_PROFILE, NULL, 0, szPath))) 
+    if(SUCCEEDED(SHGetFolderPath(NULL, CSIDL_PROFILE, NULL, 0, szPath)))
     {
         return szPath;
     }
 
     // Fallback
-    const char *user = getenv("USERPROFILE");
+    user = getenv("USERPROFILE");
     if(user)
         return user;
 
-    // Sorry, windoze :(
-    return "";
-
-#else // Assume POSIX compliance
-    const char *user = getenv("HOME");
-    if(user)
-        return user;
 #endif
+
+    // Assume POSIX compliance
+    user = getenv("HOME");
+    if(user)
+        return user;
+
+    return "";
 }
 
 std::string GetAppDir(const char *appname)
