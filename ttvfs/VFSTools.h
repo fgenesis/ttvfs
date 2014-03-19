@@ -16,8 +16,6 @@ VFS_NAMESPACE_START
 
 typedef std::deque<std::string> StringList;
 
-void stringToUpper(std::string& s);
-void stringToLower(std::string& s);
 void GetFileList(const char *, StringList& files);
 void GetDirList(const char *, StringList& dirs, int depth = 0); // recursion depth: 0 = subdirs of current, 1 = subdirs one level down, ...,  -1 = deep recursion
 bool FileExists(const char *);
@@ -25,15 +23,14 @@ bool IsDirectory(const char *);
 bool CreateDir(const char*);
 bool CreateDirRec(const char*);
 vfspos GetFileSize(const char*);
-std::string FixSlashes(const std::string& s);
-std::string FixPath(const std::string& s);
-const char *PathToFileName(const char *str);
+void FixSlashes(std::string& s);
+void FixPath(std::string& s);
+const char *GetFileNameFromPath(const char *str);
 void MakeSlashTerminated(std::string& s);
-std::string StripFileExtension(const std::string& s);
-std::string StripLastPath(const std::string& s);
+void StripFileExtension(std::string& s);
+void StripLastPath(std::string& s);
 bool WildcardMatch(const char *str, const char *pattern);
 size_t strnNLcpy(char *dst, const char *src, unsigned int n = -1);
-char *fastcat(char *s, const char *add);
 
 template <class T> void StrSplit(const std::string &src, const std::string &sep, T& container, bool keepEmpty = false)
 {

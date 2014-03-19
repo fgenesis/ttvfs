@@ -308,14 +308,15 @@ inline static VFSFile *VFSHelper_GetFileByLoader(VFSLoader *ldr, const char *fn,
 
 VFSFile *VFSHelper::GetFile(const char *fn)
 {
+    if(!merged) // Prepare() called?
+        return NULL;
+
     const char *unmangled = fn;
-    std::string fixed = FixPath(fn);
+    std::string fixed = fn; // TODO: get rid of allocation here
+    FixPath(fixed);
     fn = fixed.c_str();
 
     VFSFile *vf = NULL;
-
-    if(!merged) // Prepare() called?
-        return NULL;
 
     vf = merged->getFile(fn);
 
@@ -338,7 +339,8 @@ inline static VFSDir *VFSHelper_GetDirByLoader(VFSLoader *ldr, const char *fn, c
     VFSDir *vd = ldr->LoadDir(fn, unmangled);
     if(vd)
     {
-        std::string parentname = StripLastPath(fn);
+        std::string parentname = fn;
+        StripLastPath(parentname);
 
         VFSDir *parent = parentname.empty() ? root : root->getDir(parentname.c_str(), true);
         parent->insert(vd, true, VFSDir::NONE);
@@ -352,7 +354,8 @@ inline static VFSDir *VFSHelper_GetDirByLoader(VFSLoader *ldr, const char *fn, c
 VFSDir *VFSHelper::GetDir(const char* dn, bool create /* = false */)
 {
     const char *unmangled = dn;
-    std::string fixed = FixPath(dn);
+    std::string fixed = dn; // TODO: get rid of alloc
+    FixPath(fixed);
     dn = fixed.c_str();
 
     if(!merged)

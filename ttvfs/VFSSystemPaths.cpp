@@ -56,7 +56,7 @@ std::string GetAppDir(const char *appname)
             ret = "."; // Seems we have no other choice
     }
 
-    return FixPath(ret + '/' + appname);
+    ret += '/';
 
 #else // Assume POSIX compliance
 
@@ -66,9 +66,14 @@ std::string GetAppDir(const char *appname)
     else
         ret = ".";
 
-    return FixPath(ret + "/." + appname); // just in case
+    ret += "/.";
+    
 
 #endif
+
+    ret += appname;
+    FixPath(ret);
+    return ret;
 }
 
 

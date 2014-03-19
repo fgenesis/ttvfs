@@ -30,15 +30,6 @@
 
 VFS_NAMESPACE_START
 
-void stringToLower(std::string& s)
-{
-    std::transform(s.begin(), s.end(), s.begin(), tolower);
-}
-
-void stringToUpper(std::string& s)
-{
-    std::transform(s.begin(), s.end(), s.begin(), toupper);
-}
 
 #if !_WIN32
 #ifdef DT_DIR
@@ -97,7 +88,7 @@ static bool _IsDir(const char *path, dirent *dp)
     char *pathname = (char*)alloca(len1 + 1 + len2 + 1 + 13);
     strcpy (pathname, path);
 
-	/* Avoid UNC-path "//name" on Cygwin.  */
+    /* Avoid UNC-path "//name" on Cygwin.  */
     if (len1 > 0 && pathname[len1 - 1] != '/')
         strcat (pathname, "/");
 
@@ -307,11 +298,10 @@ vfspos GetFileSize(const char* fn)
 #endif
 }
 
-std::string FixSlashes(const std::string& s)
+void FixSlashes(std::string& s)
 {
-    std::string r;
-    r.reserve(s.length() + 1);
     char last = 0, cur;
+    size_t wpos = 0;
     for(size_t i = 0; i < s.length(); ++i)
     {
         cur = s[i];
@@ -319,29 +309,35 @@ std::string FixSlashes(const std::string& s)
             cur = '/';
         if(last == '/' && cur == '/')
             continue;
-        r += cur;
+        s[wpos++] = cur;
         last = cur;
     }
-    return r;
+    s.resize(wpos);
 }
 
-std::string FixPath(const std::string& s)
+void FixPath(std::string& s)
 {
     if(s.empty())
-        return s;
+        return;
     const char *p = s.c_str();
     while(p[0] == '.' && (p[1] == '/' || p[1] == '\\'))
         p += 2;
     if(!*p)
-        return "";
-    char end = s[s.length() - 1];
-    if(end == '/' || end == '\\')
     {
-        std::string r(p);
-        r.erase(r.length() - 1); // strip trailing '/'
-        return FixSlashes(r);
+        s.clear();
+        return;
     }
-    return FixSlashes(p);
+    size_t len = s.length();
+    while(len)
+    {
+        char end = s[len - 1];
+        if(end == '/' || end == '\\') // strip trailing '/'
+            --len;
+        else
+            break;
+    }
+    s.resize(len);
+    FixSlashes(s);
 }
 
 bool IsDirectory(const char *s)
@@ -369,35 +365,44 @@ void MakeSlashTerminated(std::string& s)
 }
 
 // extracts the file name from a given path
-const char *PathToFileName(const char *str)
+const char *GetFileNameFromPath(const char *str)
 {
     const char *p = strrchr(str, '/');
     return p ? p+1 : str;
 }
 
-std::string StripFileExtension(const std::string& s)
+void StripFileExtension(std::string& s)
 {
     size_t pos = s.find_last_of('.');
     size_t pos2 = s.find_last_of('/');
-    if(pos != std::string::npos && (pos2 < pos || pos2 == std::string::npos))
-        return s.substr(0, pos);
-
-    return s;
+    if(pos != std::string::npos && (pos2 == std::string::npos || pos2 < pos))
+        s.resize(pos+1);
 }
 
-std::string StripLastPath(const std::string& s)
+void StripLastPath(std::string& s)
 {
-    if(s.empty())
-        return "";
+    size_t len = s.length();
+    while(len)
+    {
+        char end = s[len - 1];
+        if(end == '/' || end == '\\') // strip trailing '/'
+            --len;
+        else
+            break;
+    }
+    s.resize(len);
 
-    if(s[s.length() - 1] == '/')
-        return StripLastPath(s.substr(0, s.length() - 1));
+    if(s.empty())
+        return;
 
     size_t pos = s.find_last_of('/');
     if(pos == std::string::npos)
-        return ""; // nothing remains
+    {
+        s.clear();
+        return; // nothing remains
+    }
 
-    return s.substr(0, pos);
+    s.resize(pos+1);
 }
 
 // from http://board.byuu.org/viewtopic.php?f=10&t=1089&start=15
@@ -475,17 +480,6 @@ size_t strnNLcpy(char *dst, const char *src, unsigned int n /* = -1 */)
     *dst++ = 0;
 
     return dst - olddst;
-}
-
-// Directly appends 'add' to 's', ensuring that 's' is null-terminated.
-// Returns the next write position for fastcat (the null byte at the end).
-char *fastcat(char *s, const char *add)
-{
-    size_t len = strlen(add);
-    memcpy(s, add, len);
-    s += len;
-    *(s + 1) = 0;
-    return s;
 }
 
 
