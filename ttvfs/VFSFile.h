@@ -32,7 +32,6 @@ public:
     /** Open a file.
         Mode can be "r", "w", "rb", "rb", and possibly other things that fopen supports.
         It is the subclass's choice to support other modes. Default is "rb".
-        If the file still has a buffer (as returned by getBuf()), it is deleted.
         Closes and reopens if already open (even in the same mode). */
     virtual bool open(const char *mode = NULL) { return false; }
 
@@ -56,42 +55,11 @@ public:
     /** Return file size. If NA, return npos. If size is not yet known,
         open() and close() may be called (with default args) to find out the size.
         The file is supposed to be in its old state when the function returns,
-        that is in the same open state and seek position.
-        The pointer returned by getBuf() must not change. */
+        that is in the same open state and seek position. */
     virtual vfspos size(void) { return npos; }
-
-    /** Return full file content in memory. Like size(), this may do other operations on the file,
-        but after the function returns the file is expected to be in the same state it was before.
-        If the file is not open before the call, it will be opened with default parameters (that is, "rb").
-        Additional EOL mangling my happen if the file is opened in text mode before (= not binary).
-        Calls to open() should delete this memory if the file was previously opened in a different mode.
-        In the default implementation, the returned memory is not guaranteed to be writable without problems,
-        so don't do it. Don't cast the const away. You have been warned.
-        Supply your own allocator and deletor functions if required.
-        NULL means new[] and delete[], respectively.
-        Either both must be a valid function, or both NULL. Only one of them NULL will cause assertion fail. */
-    virtual const void *getBuf(allocator_func alloc = NULL, delete_func del = NULL);
-
-    /** If del is true, delete internal buffer. If false, unregister internal buffer from the file,
-        but do not delete. Use delete[] or an appropriate deletion function later. */
-    virtual void dropBuf(bool del);
 
     /** Basic RTTI, for debugging purposes */
     virtual const char *getType(void) const { return "virtual"; }
-
-
-    // ---- non-virtual part ----
-
-    /** Uses the deletion function earlier given to getBuf() to free the given memory,
-        or delete [] if the function is NULL. Useful if the original function
-        that was used to allocate the buffer is no longer known. */
-    void delBuf(void *mem);
-
-
-protected:
-
-    void *_buf;
-    delete_func _delfunc;
 };
 
 class VFSFileReal : public VFSFile
@@ -123,40 +91,31 @@ protected:
 class VFSFileMem : public VFSFile
 {
 public:
-    enum Mode
-    {
-        COPY, //- Make a copy of the buffer (default action).
-        REUSE,  //- Use the passed-in buffer as is.  Requires the pointer
-                //  to remain valid over the life of this object.
-        TAKE_OVER, //- Take over the passed-in buffer; it will be deleted on object destruction.
-    };
-
-    /* Creates a virtual file from a memory buffer. By default, the memory is copied.
-       A deletor function can be passed optionally, if its NULL (the default),
-       delete[] (char*)buf will be used. For malloc()'d memory, pass free. (Only used if mode is TAKE_OVER) */
-    VFSFileMem(const char *name, void *buf, unsigned int size, Mode m = COPY,
-        allocator_func alloc = NULL, delete_func delfunc = NULL);
+    /* Creates a virtual file from a memory buffer. The buffer is passed as-is,
+       so for text files you should make sure it ends with a \0 character.
+       A deletor function can be passed optionally, that the buffer will be passed to
+       when the memory file is destroyed. */
+    VFSFileMem(const char *name, void *buf, unsigned int size, delete_func delfunc = NULL);
     virtual ~VFSFileMem();
     virtual bool open(const char *mode = NULL) { return true; }
     virtual bool isopen(void) const { return true; } // always open
-    virtual bool iseof(void) const { VFS_GUARD_OPT(this); return _pos >= _size; }
+    virtual bool iseof(void) const { return _pos >= _size; }
     virtual bool close(void) { return true; } // cant close, but not a problem
-    virtual bool seek(vfspos pos) { VFS_GUARD_OPT(this); _pos = pos; return true; }
-    virtual bool seekRel(vfspos offs) { VFS_GUARD_OPT(this); _pos += offs; return true; }
+    virtual bool seek(vfspos pos) { _pos = pos; return true; }
+    virtual bool seekRel(vfspos offs) { _pos += offs; return true; }
     virtual bool flush(void) { return false; } // can't flush, if a successful file write is expected, this IS a problem.
-    virtual vfspos getpos(void) const { VFS_GUARD_OPT(this); return _pos; }
+    virtual vfspos getpos(void) const { return _pos; }
     virtual unsigned int read(void *dst, unsigned int bytes);
     virtual unsigned int write(const void *src, unsigned int bytes);
-    virtual vfspos size(void) { VFS_GUARD_OPT(this); return _size; }
-    virtual const void *getBuf(allocator_func alloc = NULL, delete_func del = NULL) { VFS_GUARD_OPT(this); return _buf; }
-    virtual void dropBuf(bool) {} // we can't simply drop the internal buffer, as the file is entirely memory based
+    virtual vfspos size(void) { return _size; }
     virtual const char *getType(void) const { return "mem"; }
 
 protected:
 
+    void *_buf;
     vfspos _pos;
     vfspos _size;
-    bool _mybuf;
+    delete_func _delfunc;
 };
 
 VFS_NAMESPACE_END

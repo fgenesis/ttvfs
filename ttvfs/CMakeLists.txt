@@ -2,8 +2,6 @@
 set(ttvfs_SRC
     VFS.h
     VFSArchiveLoader.h
-    VFSAtomic.cpp
-    VFSAtomic.h
     VFSBase.cpp
     VFSBase.h
     VFSDefines.h
@@ -13,7 +11,6 @@ set(ttvfs_SRC
     VFSFile.h
     VFSFileFuncs.cpp
     VFSFileFuncs.h
-    VFSHashmap.h
     VFSHelper.cpp
     VFSHelper.h
     VFSInternal.h

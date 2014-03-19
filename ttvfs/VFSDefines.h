@@ -23,15 +23,6 @@
 // on disk (see VFSLoader.cpp).
 //#define VFS_IGNORE_CASE
 
-// Define this to make all VFSFile, VFSDir, VFSHelper operations thread-safe.
-// If you do, do not forget to add your own implementation to VFSAtomic.cpp/.h !
-// If this is not defined, you can still do manual locking if you know what you're doing,
-// performance matters, and you implemented actual locking into the Mutex class.
-// If no Mutex implementation is provided, its operations are no-ops, beware!
-// Note: This adds a *lot* of overhead. Better ensure thread safety yourself, externally. Really!
-// (Also note that this feature is *UNTESTED*. Don't activate.)
-//#define VFS_THREADSAFE
-
 // By default, ttvfs uses a std::map to store stuff.
 // Uncomment the line below to use an (experimental!) hashmap.
 // With std::map, iterating over entries will always deliver them in sorted order.

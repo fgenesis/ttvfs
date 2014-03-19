@@ -5,7 +5,6 @@
 
 #include "VFSInternal.h"
 #include "VFSHelper.h"
-#include "VFSAtomic.h"
 #include "VFSTools.h"
 
 #include "VFSDir.h"
@@ -62,7 +61,6 @@ VFSHelper::~VFSHelper()
 
 void VFSHelper::Clear(void)
 {
-    VFS_GUARD_OPT(this);
     _cleanup();
 
     if(filesysRoot)
@@ -95,7 +93,6 @@ void VFSHelper::_ClearMountPoints(void)
 
 void VFSHelper::_cleanup(void)
 {
-    VFS_GUARD_OPT(this); // be extra safe and ensure this is locked
     if(merged)
     {
         merged->ref--;
@@ -105,8 +102,6 @@ void VFSHelper::_cleanup(void)
 
 bool VFSHelper::LoadFileSysRoot(bool recursive)
 {
-    VFS_GUARD_OPT(this);
-
     if(filesysRoot)
         return !!filesysRoot->load(recursive);
 
@@ -134,8 +129,6 @@ bool VFSHelper::LoadFileSysRoot(bool recursive)
 // TODO: deprecate this
 void VFSHelper::Prepare(bool clear /* = true */)
 {
-    VFS_GUARD_OPT(this);
-
     Reload(false, clear, false); // HACK
 
     //for(DirArray::iterator it = trees.begin(); it != trees.end(); ++it)
@@ -144,7 +137,6 @@ void VFSHelper::Prepare(bool clear /* = true */)
 
 void VFSHelper::Reload(bool fromDisk /* = false */, bool clear /* = false */, bool clearMountPoints /* = false */)
 {
-    VFS_GUARD_OPT(this);
     if(clearMountPoints)
         _ClearMountPoints();
     if(fromDisk && filesysRoot)
@@ -175,7 +167,6 @@ void VFSHelper::Reload(bool fromDisk /* = false */, bool clear /* = false */, bo
 
 bool VFSHelper::Mount(const char *src, const char *dest, bool overwrite /* = true*/)
 {
-    VFS_GUARD_OPT(this);
     return AddVFSDir(GetDir(src, false), dest, overwrite);
 }
 
@@ -183,7 +174,6 @@ bool VFSHelper::AddVFSDir(VFSDir *dir, const char *subdir /* = NULL */, bool ove
 {
     if(!dir)
         return false;
-    VFS_GUARD_OPT(this);
     if(!subdir)
         subdir = dir->fullname();
 
@@ -260,7 +250,6 @@ bool VFSHelper::_RemoveMountPoint(const VDirEntry& ve)
 
 bool VFSHelper::MountExternalPath(const char *path, const char *where /* = "" */, bool loadRec /* = false */, bool overwrite /* = true */)
 {
-    VFS_GUARD_OPT(this);
     VFSDirReal *vfs = new VFSDirReal(path);
     if(vfs->load(loadRec))
         AddVFSDir(vfs, where, overwrite);
@@ -269,13 +258,11 @@ bool VFSHelper::MountExternalPath(const char *path, const char *where /* = "" */
 
 void VFSHelper::AddLoader(VFSLoader *ldr)
 {
-    VFS_GUARD_OPT(this);
     loaders.push_back(ldr);
 }
 
 void VFSHelper::AddArchiveLoader(VFSArchiveLoader *ldr)
 {
-    VFS_GUARD_OPT(this);
     archLdrs.push_back(ldr);
 }
 
@@ -313,7 +300,6 @@ inline static VFSFile *VFSHelper_GetFileByLoader(VFSLoader *ldr, const char *fn,
     VFSFile *vf = ldr->Load(fn, unmangled);
     if(vf)
     {
-        VFS_GUARD_OPT(vf);
         root->addRecursive(vf, true, VFSDir::NONE);
         --(vf->ref);
     }
@@ -327,9 +313,6 @@ VFSFile *VFSHelper::GetFile(const char *fn)
     fn = fixed.c_str();
 
     VFSFile *vf = NULL;
-
-
-    VFS_GUARD_OPT(this);
 
     if(!merged) // Prepare() called?
         return NULL;
@@ -357,7 +340,6 @@ inline static VFSDir *VFSHelper_GetDirByLoader(VFSLoader *ldr, const char *fn, c
     {
         std::string parentname = StripLastPath(fn);
 
-        VFS_GUARD_OPT(this);
         VFSDir *parent = parentname.empty() ? root : root->getDir(parentname.c_str(), true);
         parent->insert(vd, true, VFSDir::NONE);
         --(vd->ref); // should delete it
@@ -373,7 +355,6 @@ VFSDir *VFSHelper::GetDir(const char* dn, bool create /* = false */)
     std::string fixed = FixPath(dn);
     dn = fixed.c_str();
 
-    VFS_GUARD_OPT(this);
     if(!merged)
         return NULL;
     if(!*dn)
@@ -398,7 +379,6 @@ VFSDir *VFSHelper::GetDir(const char* dn, bool create /* = false */)
 
 VFSDir *VFSHelper::GetDirRoot(void)
 {
-    VFS_GUARD_OPT(this);
     return merged;
 }
 

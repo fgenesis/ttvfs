@@ -40,13 +40,6 @@ public:
     /** Returns an object this object depends on. (used internally, by extensions) */
     inline VFSBase *getOrigin() const { return _origin; }
 
-    inline void lock() const { _mtx.Lock(); }
-    inline void unlock() const { _mtx.Unlock(); }
-    inline Mutex& mutex() const { return _mtx; }
-
-#ifdef VFS_USE_HASHMAP
-    inline size_t hash() const { return _hash; }
-#endif
 
     // For internal use
     inline void _setOrigin(VFSBase *origin) { _origin = origin; }
@@ -57,15 +50,9 @@ protected:
 
 private:
 
-#ifdef VFS_USE_HASHMAP
-    size_t _hash;
-#endif
-
     const char *_name; // must point to an address constant during object lifetime (like _fullname.c_str() + N)
                        // (not necessary to have an additional string copy here, just wastes memory)
     std::string _fullname;
-
-    mutable Mutex _mtx;
 
     VFSBase *_origin; // May store a pointer if necessary. NOT ref-counted, because this would create cycles in almost all cases.
 

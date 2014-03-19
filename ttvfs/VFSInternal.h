@@ -18,30 +18,6 @@
 #include <string>
 #include <cassert>
 
-VFS_NAMESPACE_START
-
-inline char *allocHelper(allocator_func alloc, size_t size)
-{
-    return alloc ? (char*)alloc(size) : new char[size];
-}
-
-inline char *allocHelperExtra(allocator_func alloc, size_t size, size_t extra)
-{
-    char *p = (char*)allocHelper(alloc, size + extra);
-    memset(p + size, 0, extra);
-    return p;
-}
-
-template <typename T> inline void deleteHelper(delete_func deletor, T *mem)
-{
-    if(deletor)
-        deletor(mem);
-    else
-        delete [] mem;
-}
-
-VFS_NAMESPACE_END
-
 
 #if _MSC_VER
 # ifndef _CRT_SECURE_NO_WARNINGS

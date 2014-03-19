@@ -9,8 +9,6 @@
 #include <string>
 #include <iostream>
 
-#include "VFSAtomic.h"
-
 
 VFS_NAMESPACE_START
 
@@ -128,10 +126,6 @@ public:
     //bool Remove(VFSDir *dir);
     //bool Remove(const char *name); // TODO: CODE ME
 
-    inline void lock() { _mtx.Lock(); }
-    inline void unlock() { _mtx.Unlock(); }
-    inline Mutex& mutex() const { return _mtx; }
-
     // DEBUG STUFF
     void debugDumpTree(std::ostream& os, VFSDir *start = NULL);
 
@@ -178,8 +172,6 @@ protected:
     LoaderArray loaders;
 
     VFSDir *merged; // contains the merged virtual/actual file system tree
-
-    mutable Mutex _mtx;
 
 private:
     VFSMountList vlist; // all other trees added later, together with path to mount to

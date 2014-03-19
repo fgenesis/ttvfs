@@ -70,8 +70,6 @@ bool VFSDir::addRecursive(VFSFile *f, bool overwrite, EntryFlags flag)
     if(!f)
         return false;
 
-    VFS_GUARD_OPT(this);
-
     // figure out directory from full file name
     VFSDir *vdir;
     size_t prefixLen = f->fullnameLen() - f->nameLen();
@@ -98,7 +96,6 @@ bool VFSDir::merge(VFSDir *dir, bool overwrite, EntryFlags flag)
         return true; // nothing to do then
 
     bool result = false;
-    VFS_GUARD_OPT(this);
 
     for(Files::iterator it = dir->_files.begin(); it != dir->_files.end(); ++it)
         result = add(it->second.ptr, overwrite, flag) || result;
@@ -154,7 +151,6 @@ VFSFile *VFSDir::getFile(const char *fn)
         VFSDir *subdir = this;
         const char *ptr = dup;
         Dirs::iterator it;
-        VFS_GUARD_OPT(this);
 
         goto pos_known;
         do
@@ -186,7 +182,6 @@ VFSFile *VFSDir::getFile(const char *fn)
     }
 
     // no subdir? file must be in this dir now.
-    VFS_GUARD_OPT(this);
     Files::iterator it = _files.find(fn);
     return it != _files.end() ? it->second.ptr : NULL;
 }
@@ -208,7 +203,6 @@ VFSDir *VFSDir::getDir(const char *subdir, bool forceCreate /* = false */)
         char * const t = (char*)VFS_STACK_ALLOC(copysize + 1);
         memcpy(t, subdir, copysize);
         t[copysize] = 0;
-        VFS_GUARD_OPT(this);
         Dirs::iterator it = _subdirs.find(t);
         if(it != _subdirs.end())
         {
@@ -240,7 +234,6 @@ VFSDir *VFSDir::getDir(const char *subdir, bool forceCreate /* = false */)
     }
     else
     {
-        VFS_GUARD_OPT(this);
         Dirs::iterator it = _subdirs.find(subdir);
         if(it != _subdirs.end())
             ret = it->second.ptr;
@@ -314,7 +307,6 @@ static void _iterDirs(VFSDir::Dirs &m, DirEnumCallback f, void *user)
 
 void VFSDir::forEachDir(DirEnumCallback f, void *user /* = NULL */, bool safe /* = false */)
 {
-    VFS_GUARD_OPT(this);
     if(safe)
     {
         Dirs cp = _subdirs;
@@ -334,7 +326,6 @@ static void _iterFiles(VFSDir::Files &m, FileEnumCallback f, void *user)
 
 void VFSDir::forEachFile(FileEnumCallback f, void *user /* = NULL */, bool safe /* = false */)
 {
-    VFS_GUARD_OPT(this);
     if(safe)
     {
         Files cp = _files;
@@ -361,8 +352,6 @@ VFSDir *VFSDirReal::createNew(const char *dir) const
 
 unsigned int VFSDirReal::load(bool recursive)
 {
-    VFS_GUARD_OPT(this);
-
     Files remainF;
     Dirs remainD;
 
