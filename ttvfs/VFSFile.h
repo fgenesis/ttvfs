@@ -10,7 +10,7 @@
 VFS_NAMESPACE_START
 
 
-/** -- VFSFile basic interface --
+/** -- File basic interface --
   * All functions that return bool should return true on success and false on failure.
   * If an operation is not necessary or irrelevant (for example, files in memory can't be closed),
   *    it is useful to return true anyways, because this operation did not fail, technically.
@@ -19,15 +19,15 @@ VFS_NAMESPACE_START
   * Only the functions required or applicable need to be implemented, for unsupported operations
   *    the default implementation should be sufficient.
   **/
-class VFSFile : public VFSBase
+class File : public VFSBase
 {
 public:
 
     /** The ctor is expected to set both name() and fullname();
         The name must remain static throughout the object's lifetime. */
-    VFSFile(const char *fn);
+    File(const char *fn);
 
-    virtual ~VFSFile();
+    virtual ~File();
 
     /** Open a file.
         Mode can be "r", "w", "rb", "rb", and possibly other things that fopen supports.
@@ -42,7 +42,7 @@ public:
 
     /** Seek relative to current position. Negative numbers will seek backwards.
         (In most cases, the default implementation does not have to be changed) */
-    virtual bool seekRel(vfspos offs) { VFS_GUARD_OPT(this); return seek(getpos() + offs); }
+    virtual bool seekRel(vfspos offs) { return seek(getpos() + offs); }
 
     virtual bool flush(void) { return true; }
 
@@ -57,16 +57,13 @@ public:
         The file is supposed to be in its old state when the function returns,
         that is in the same open state and seek position. */
     virtual vfspos size(void) { return npos; }
-
-    /** Basic RTTI, for debugging purposes */
-    virtual const char *getType(void) const { return "virtual"; }
 };
 
-class VFSFileReal : public VFSFile
+class DiskFile : public File
 {
 public:
-    VFSFileReal(const char *name);
-    virtual ~VFSFileReal();
+    DiskFile(const char *name);
+    virtual ~DiskFile();
     virtual bool open(const char *mode = NULL);
     virtual bool isopen(void) const;
     virtual bool iseof(void) const;
@@ -78,7 +75,7 @@ public:
     virtual unsigned int read(void *dst, unsigned int bytes);
     virtual unsigned int write(const void *src, unsigned int bytes);
     virtual vfspos size(void);
-    virtual const char *getType(void) const { return "disk"; }
+    virtual const char *getType(void) const { return "DiskFile"; }
 
     inline void *getFP() { return _fh; }
 
@@ -88,7 +85,7 @@ protected:
     void *_buf;
 };
 
-class VFSFileMem : public VFSFile
+class VFSFileMem : public File
 {
 public:
     /* Creates a virtual file from a memory buffer. The buffer is passed as-is,

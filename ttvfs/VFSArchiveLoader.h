@@ -5,11 +5,11 @@
 
 VFS_NAMESPACE_START
 
-class VFSDir;
-class VFSFile;
+class Dir;
+class File;
 class VFSLoader;
 
-// Generic Archive loader interface that is supposed to return a valid VFSDir pointer when it
+// Generic Archive loader interface that is supposed to return a valid Dir pointer when it
 // was able to load 'arch' as an archive, and NULL if there was an error or the loader is
 // unable to load that file type.
 // 'asSubdir' - if this is true, the archive will be accessible as a folder (as in "test.zip/file.dat"),
@@ -29,7 +29,7 @@ class VFSArchiveLoader
 public:
     virtual ~VFSArchiveLoader() {}
 
-    virtual VFSDir *Load(VFSFile *arch, VFSLoader **ldr, void *opaque = NULL) = 0;
+    virtual Dir *Load(File *arch, VFSLoader **ldr, void *opaque = NULL) = 0;
 };
 
 /* A possible struct for 'opaque' would be:

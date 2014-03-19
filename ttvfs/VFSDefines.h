@@ -61,32 +61,21 @@ VFS_NAMESPACE_START
 #    if defined(_MSC_VER)
          typedef __int64           vfspos;
 #    else
-         typedef long long         vfspos;
+#        include <stdint.h>
+         typedef int64_t           vfspos;
 #    endif
 #else
     typedef unsigned int           vfspos;
 #endif
 
-// simple guard wrapper, works also if VFS_THREADSAFE is not defined
-#define VFS_GUARD(obj) VFS_NAMESPACE_IMPL Guard __vfs_stack_guard((obj)->mutex())
-
-// defines for optional auto-locking; only if VFS_THREADSAFE is defined
-#ifdef VFS_THREADSAFE
-#    define VFS_GUARD_OPT(obj) VFS_GUARD(obj)
-#else
-#    define VFS_GUARD_OPT(obj)
-#endif
-
 #if defined(_MSC_VER) || defined(__MINGW32__) || defined(__MINGW64__)
 #    define VFS_STRICMP stricmp
+     static const vfspos npos = vfspos(-1i64);
 #else
 #    define VFS_STRICMP strcasecmp
+     static const vfspos npos = vfspos(-1LL);
 #endif
 
-static const vfspos npos = vfspos(-1);
-
-typedef void *(*allocator_func)(size_t);
-typedef void (*delete_func)(void*);
 
 VFS_NAMESPACE_END
 

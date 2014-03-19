@@ -6,33 +6,33 @@
 
 #include <string>
 #include "VFSDefines.h"
-#include "VFSSelfRefCounter.h"
+#include "VFSRefcounted.h"
 
 VFS_NAMESPACE_START
 
 // Used internally. No special properties, just holds some common code.
-class VFSBase
+class VFSBase : Refcounted
 {
 public:
     virtual ~VFSBase() {}
 
     /** Returns the plain file name. Never NULL. */
-    inline const char *name() const { VFS_GUARD_OPT(this); return _name; }
+    inline const char *name() const { return _name; }
 
     /** Returns the file name with full path. Never NULL. */
-    inline const char *fullname() const { VFS_GUARD_OPT(this); return _fullname.c_str(); }
+    inline const char *fullname() const { return _fullname.c_str(); }
 
     /** To avoid strlen() */
-    inline size_t fullnameLen() const { VFS_GUARD_OPT(this); return _fullname.length(); }
+    inline size_t fullnameLen() const { return _fullname.length(); }
     // We know that mem addr of _name > _fullname:
     // _fullname: "abc/def/ghi/hjk.txt" (length = 19)
     // _name:                 "hjk.txt" <-- want that length
     // ptr diff: 12
     // so in total: 19 - 12 == 7
-    inline size_t nameLen() const { VFS_GUARD_OPT(this); return _fullname.length() - (_name - _fullname.c_str()); }
+    inline size_t nameLen() const { return _fullname.length() - (_name - _fullname.c_str()); }
 
     /** Basic RTTI, for debugging purposes */
-    virtual const char *getType() const { return "<BASE>"; }
+    virtual const char *getType() const = 0;
 
     /** Can be overloaded to close resources this object keeps open */
     virtual bool close() { return true; }
@@ -55,12 +55,6 @@ private:
     std::string _fullname;
 
     VFSBase *_origin; // May store a pointer if necessary. NOT ref-counted, because this would create cycles in almost all cases.
-
-public:
-
-    /** Reference count, if the pointer to this file is stored somewhere it is advisable to increase
-    (ref++) it. If it reaches 0, this file is deleted automatically. */
-    SelfRefCounter<VFSBase> ref;
 };
 
 

@@ -16,7 +16,7 @@ set(ttvfs_SRC
     VFSInternal.h
     VFSLoader.cpp
     VFSLoader.h
-    VFSSelfRefCounter.h
+    VFSRefcounted.h
     VFSSystemPaths.cpp
     VFSSystemPaths.h
     VFSTools.cpp

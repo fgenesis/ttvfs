@@ -23,30 +23,25 @@
 VFS_NAMESPACE_START
 
 // predecl is in VFS.h
-bool _checkCompatInternal(bool large, bool nocase, bool hashmap, unsigned int vfspos_size)
+bool _checkCompatInternal(_AbiCheck *used)
 {
+    if(sizeof(_AbiCheck) != used->structSize)
+        return false;
+
+    _AbiCheck here;
+    memset(&here, 0, sizeof(here));
+    here.structSize = sizeof(here);
+    here.vfsposSize = sizeof(vfspos);
+
 #ifdef VFS_LARGEFILE_SUPPORT
-    bool largefile_i = true;
-#else
-    bool largefile_i = false;
+    here.largefile = 1;
 #endif
 
 #ifdef VFS_IGNORE_CASE
-    bool nocase_i = true;
-#else
-    bool nocase_i = false;
+    here.nocase = 1;
 #endif
 
-#ifdef VFS_USE_HASHMAP
-    bool hashmap_i = true;
-#else
-    bool hashmap_i = false;
-#endif
-
-    return (large == largefile_i)
-        && (nocase == nocase_i)
-        && (hashmap == hashmap_i)
-        && (sizeof(vfspos) == vfspos_size);
+    return !memcmp(&here, used, sizeof(here));
 }
 
 VFSHelper::VFSHelper()
@@ -105,7 +100,7 @@ bool VFSHelper::LoadFileSysRoot(bool recursive)
     if(filesysRoot)
         return !!filesysRoot->load(recursive);
 
-    filesysRoot = new VFSDirReal(".");
+    filesysRoot = new DiskDir(".");
     if(!filesysRoot->load(recursive))
     {
         filesysRoot->ref--;
@@ -160,7 +155,7 @@ void VFSHelper::Reload(bool fromDisk /* = false */, bool clear /* = false */, bo
         for(VFSMountList::iterator it = vlist.begin(); it != vlist.end(); ++it)
         {
             //printf("VFS: mount {%s} [%s] -> [%s] (overwrite: %d)\n", it->vdir->getType(), it->vdir->fullname(), it->mountPoint.c_str(), it->overwrite);
-            GetDir(it->mountPoint.c_str(), true)->merge(it->vdir, it->overwrite, VFSDir::MOUNTED);
+            GetDir(it->mountPoint.c_str(), true)->merge(it->vdir, it->overwrite, Dir::MOUNTED);
         }
     }
 }
@@ -170,7 +165,7 @@ bool VFSHelper::Mount(const char *src, const char *dest, bool overwrite /* = tru
     return AddVFSDir(GetDir(src, false), dest, overwrite);
 }
 
-bool VFSHelper::AddVFSDir(VFSDir *dir, const char *subdir /* = NULL */, bool overwrite /* = true */)
+bool VFSHelper::AddVFSDir(Dir *dir, const char *subdir /* = NULL */, bool overwrite /* = true */)
 {
     if(!dir)
         return false;
@@ -180,17 +175,17 @@ bool VFSHelper::AddVFSDir(VFSDir *dir, const char *subdir /* = NULL */, bool ove
     VDirEntry ve(dir, subdir, overwrite);
     _StoreMountPoint(ve);
 
-    VFSDir *sd = GetDir(subdir, true);
+    Dir *sd = GetDir(subdir, true);
     if(!sd) // may be NULL if Prepare() was not called before
         return false;
-    sd->merge(dir, overwrite, VFSDir::MOUNTED); // merge into specified subdir. will be (virtually) created if not existing
+    sd->merge(dir, overwrite, Dir::MOUNTED); // merge into specified subdir. will be (virtually) created if not existing
 
     return true;
 }
 
 bool VFSHelper::Unmount(const char *src, const char *dest)
 {
-    VFSDir *vd = GetDir(src, false);
+    Dir *vd = GetDir(src, false);
     if(!vd)
         return false;
 
@@ -202,7 +197,7 @@ bool VFSHelper::Unmount(const char *src, const char *dest)
     Reload(false, true, false);
     //vd->load(true);
     //vd->load(false);
-    /*VFSDir *dstdir = GetDir(dest, false);
+    /*Dir *dstdir = GetDir(dest, false);
     if(dstdir)
         dstdir->load(false);*/
     return true;
@@ -250,7 +245,7 @@ bool VFSHelper::_RemoveMountPoint(const VDirEntry& ve)
 
 bool VFSHelper::MountExternalPath(const char *path, const char *where /* = "" */, bool loadRec /* = false */, bool overwrite /* = true */)
 {
-    VFSDirReal *vfs = new VFSDirReal(path);
+    DiskDir *vfs = new DiskDir(path);
     if(vfs->load(loadRec))
         AddVFSDir(vfs, where, overwrite);
     return !!--(vfs->ref); // 0 if deleted
@@ -266,13 +261,13 @@ void VFSHelper::AddArchiveLoader(VFSArchiveLoader *ldr)
     archLdrs.push_back(ldr);
 }
 
-VFSDir *VFSHelper::AddArchive(const char *arch, bool asSubdir /* = true */, const char *subdir /* = NULL */, void *opaque /* = NULL */)
+Dir *VFSHelper::AddArchive(const char *arch, bool asSubdir /* = true */, const char *subdir /* = NULL */, void *opaque /* = NULL */)
 {
-    VFSFile *af = GetFile(arch);
+    File *af = GetFile(arch);
     if(!af)
         return NULL;
 
-    VFSDir *ad = NULL;
+    Dir *ad = NULL;
     VFSLoader *fileLdr = NULL;
     for(ArchiveLoaderArray::iterator it = archLdrs.begin(); it != archLdrs.end(); ++it)
         if((ad = (*it)->Load(af, &fileLdr, opaque)))
@@ -293,20 +288,20 @@ VFSDir *VFSHelper::AddArchive(const char *arch, bool asSubdir /* = true */, cons
     return ad;
 }
 
-inline static VFSFile *VFSHelper_GetFileByLoader(VFSLoader *ldr, const char *fn, const char *unmangled, VFSDir *root)
+inline static File *VFSHelper_GetFileByLoader(VFSLoader *ldr, const char *fn, const char *unmangled, Dir *root)
 {
     if(!ldr)
         return NULL;
-    VFSFile *vf = ldr->Load(fn, unmangled);
+    File *vf = ldr->Load(fn, unmangled);
     if(vf)
     {
-        root->addRecursive(vf, true, VFSDir::NONE);
+        root->addRecursive(vf, true, Dir::NONE);
         --(vf->ref);
     }
     return vf;
 }
 
-VFSFile *VFSHelper::GetFile(const char *fn)
+File *VFSHelper::GetFile(const char *fn)
 {
     if(!merged) // Prepare() called?
         return NULL;
@@ -316,12 +311,12 @@ VFSFile *VFSHelper::GetFile(const char *fn)
     FixPath(fixed);
     fn = fixed.c_str();
 
-    VFSFile *vf = NULL;
+    File *vf = NULL;
 
     vf = merged->getFile(fn);
 
     // nothing found? maybe a loader has something.
-    // if so, add the newly created VFSFile to the tree.
+    // if so, add the newly created File to the tree.
     if(!vf)
         for(LoaderArray::iterator it = loaders.begin(); it != loaders.end(); ++it)
             if((vf = VFSHelper_GetFileByLoader(*it, fn, unmangled, GetDirRoot())))
@@ -332,18 +327,18 @@ VFSFile *VFSHelper::GetFile(const char *fn)
     return vf;
 }
 
-inline static VFSDir *VFSHelper_GetDirByLoader(VFSLoader *ldr, const char *fn, const char *unmangled, VFSDir *root)
+inline static Dir *VFSHelper_GetDirByLoader(VFSLoader *ldr, const char *fn, const char *unmangled, Dir *root)
 {
     if(!ldr)
         return NULL;
-    VFSDir *vd = ldr->LoadDir(fn, unmangled);
+    Dir *vd = ldr->LoadDir(fn, unmangled);
     if(vd)
     {
         std::string parentname = fn;
         StripLastPath(parentname);
 
-        VFSDir *parent = parentname.empty() ? root : root->getDir(parentname.c_str(), true);
-        parent->insert(vd, true, VFSDir::NONE);
+        Dir *parent = parentname.empty() ? root : root->getDir(parentname.c_str(), true);
+        parent->insert(vd, true, Dir::NONE);
         --(vd->ref); // should delete it
 
         vd = root->getDir(fn); // can't return vd directly because it is cloned on insert+merge, and already deleted here
@@ -351,7 +346,7 @@ inline static VFSDir *VFSHelper_GetDirByLoader(VFSLoader *ldr, const char *fn, c
     return vd;
 }
 
-VFSDir *VFSHelper::GetDir(const char* dn, bool create /* = false */)
+Dir *VFSHelper::GetDir(const char* dn, bool create /* = false */)
 {
     const char *unmangled = dn;
     std::string fixed = dn; // TODO: get rid of alloc
@@ -362,7 +357,7 @@ VFSDir *VFSHelper::GetDir(const char* dn, bool create /* = false */)
         return NULL;
     if(!*dn)
         return merged;
-    VFSDir *vd = merged->getDir(dn);
+    Dir *vd = merged->getDir(dn);
 
     if(!vd && create)
     {
@@ -380,12 +375,12 @@ VFSDir *VFSHelper::GetDir(const char* dn, bool create /* = false */)
     return vd;
 }
 
-VFSDir *VFSHelper::GetDirRoot(void)
+Dir *VFSHelper::GetDirRoot(void)
 {
     return merged;
 }
 
-VFSDir *VFSHelper::GetBaseTree(const char *path)
+Dir *VFSHelper::GetBaseTree(const char *path)
 {
     for(DirArray::iterator it = trees.begin(); it != trees.end(); ++it)
         if(!casecmp(it->source.c_str(), path))
@@ -393,7 +388,7 @@ VFSDir *VFSHelper::GetBaseTree(const char *path)
     return NULL;
 }
 
-VFSDir *VFSHelper::GetMountPoint(const char *path)
+Dir *VFSHelper::GetMountPoint(const char *path)
 {
     for(VFSMountList::iterator it = vlist.begin(); it != vlist.end(); ++it)
         if(!casecmp(it->mountPoint.c_str(), path))
@@ -415,15 +410,15 @@ void VFSHelper::ClearGarbage(void)
 
 struct _DbgParams
 {
-    _DbgParams(std::ostream& os_, VFSDir *parent_, const std::string& sp_)
+    _DbgParams(std::ostream& os_, Dir *parent_, const std::string& sp_)
         : os(os_), parent(parent_), sp(sp_) {}
 
     std::ostream& os;
-    VFSDir *parent;
+    Dir *parent;
     const std::string& sp;
 };
 
-static void _DumpFile(VFSFile *vf, void *user)
+static void _DumpFile(File *vf, void *user)
 {
     _DbgParams& p = *((_DbgParams*)user);
 
@@ -435,7 +430,7 @@ static void _DumpFile(VFSFile *vf, void *user)
     p.os << std::endl;
 }
 
-static void _DumpTreeRecursive(VFSDir *vd, void *user)
+static void _DumpTreeRecursive(Dir *vd, void *user)
 {
     _DbgParams& p = *((_DbgParams*)user);
 
@@ -455,10 +450,10 @@ static void _DumpTreeRecursive(VFSDir *vd, void *user)
 
 }
 
-void VFSHelper::debugDumpTree(std::ostream& os, VFSDir *start /* = NULL */)
+void VFSHelper::debugDumpTree(std::ostream& os, Dir *start /* = NULL */)
 {
     _DbgParams recP(os, NULL, "");
-    VFSDir *d = start ? start : GetDirRoot();
+    Dir *d = start ? start : GetDirRoot();
     _DumpTreeRecursive(d, &recP);
 }
 

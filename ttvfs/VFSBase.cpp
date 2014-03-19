@@ -9,7 +9,7 @@ VFS_NAMESPACE_START
 
 VFSBase::VFSBase()
 : ref(this)
-  , _origin(NULL)
+, _origin(NULL)
 {
 }
 
