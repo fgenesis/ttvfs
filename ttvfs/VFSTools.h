@@ -7,6 +7,7 @@
 #ifndef VFS_TOOLS_H
 #define VFS_TOOLS_H
 
+#include <cstdlib>
 #include <deque>
 #include <string>
 
@@ -16,8 +17,10 @@ VFS_NAMESPACE_START
 
 typedef std::deque<std::string> StringList;
 
-void GetFileList(const char *, StringList& files);
-void GetDirList(const char *, StringList& dirs, int depth = 0); // recursion depth: 0 = subdirs of current, 1 = subdirs one level down, ...,  -1 = deep recursion
+// these return false if the queried dir does not exist
+bool GetFileList(const char *, StringList& files);
+bool GetDirList(const char *, StringList& dirs, int depth = 0); // recursion depth: 0 = subdirs of current, 1 = subdirs one level down, ...,  -1 = deep recursion
+
 bool FileExists(const char *);
 bool IsDirectory(const char *);
 bool CreateDir(const char*);
@@ -25,7 +28,7 @@ bool CreateDirRec(const char*);
 vfspos GetFileSize(const char*);
 void FixSlashes(std::string& s);
 void FixPath(std::string& s);
-const char *GetFileNameFromPath(const char *str);
+const char *GetBaseNameFromPath(const char *str);
 void MakeSlashTerminated(std::string& s);
 void StripFileExtension(std::string& s);
 void StripLastPath(std::string& s);

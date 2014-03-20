@@ -8,7 +8,7 @@
 
 // checks to enforce correct including
 #ifdef TTVFS_VFS_H
-#error Oops, TTVFS_VFS_H is defined, someone messed up and included VFS.h wrongly.
+#error Oops, TTVFS_VFS_H is defined, someone messed up and included ttvfs.h wrongly.
 #endif
 
 #include "VFSDefines.h"
@@ -28,6 +28,22 @@
 #endif
 #   pragma warning(disable: 4355) // 'this' : used in base member initializer list
 #endif
+
+template <typename DST, typename SRC> inline DST safecast(const SRC *p)
+{
+#ifndef NDEBUG
+    assert(!p || static_cast<DST>(p) == dynamic_cast<DST>(p));
+#endif
+    return static_cast<DST>(p);
+}
+
+template <typename DST, typename SRC> inline DST safecastNonNull(const SRC *p)
+{
+#ifndef NDEBUG
+    assert(p && static_cast<DST>(p) == dynamic_cast<DST>(p));
+#endif
+    return static_cast<DST>(p);
+}
 
 
 #endif

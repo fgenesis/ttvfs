@@ -95,6 +95,7 @@ Dir *DirBase::getDir(const char *subdir, bool forceCreate /* = false */)
         Dirs::iterator it = _subdirs.find(t);
         if(it != _subdirs.end())
         {
+            // TODO: get rid of recursion
             ret = it->second.ptr->getDir(sub, forceCreate); // descend into subdirs
         }
         else if(forceCreate)
@@ -168,16 +169,19 @@ Dir::~Dir()
 
 File *Dir::getFileByName(const char *fn) const
 {
-    Files::iterator it = _files.find(fn);
+    Files::const_iterator it = _files.find(fn);
     return it == _files.end() ? NULL : it->second;
 }
 
-template<typename T> static void iterIncref(T *b, void*) { ++(b->ref); }
-template<typename T> static void iterDecref(T *b, void*) { --(b->ref); }
-
-static void _iterDirs(Dir::Dirs &m, DirEnumCallback f, void *user)
+File *Dir::getDirByName(const char *fn) const
 {
-    for(DirIter it = m.begin(); it != m.end(); ++it)
+    Dirs::const_iterator it = _subdirs.find(fn);
+    return it == _subdirs.end() ? NULL : it->second;
+}
+
+static void _iterDirs(const Dir::Dirs &m, DirEnumCallback f, void *user)
+{
+    for(Dirs::const_iterator it = m.begin(); it != m.end(); ++it)
         f(it->second.ptr, user);
 }
 
@@ -186,32 +190,74 @@ void Dir::forEachDir(DirEnumCallback f, void *user /* = NULL */, bool safe /* = 
     if(safe)
     {
         Dirs cp = _subdirs;
-        _iterDirs(cp, iterIncref<Dir>, NULL);
         _iterDirs(cp, f, user);
-        _iterDirs(cp, iterDecref<Dir>, NULL);
     }
     else
         _iterDirs(_subdirs, f, user);
 }
 
-static void _iterFiles(Dir::Files &m, FileEnumCallback f, void *user)
+static void _iterFiles(const Dir::Files &m, FileEnumCallback f, void *user)
 {
-    for(FileIter it = m.begin(); it != m.end(); ++it)
+    for(Files::const_iterator it = m.begin(); it != m.end(); ++it)
         f(it->second.ptr, user);
 }
 
 void Dir::forEachFile(FileEnumCallback f, void *user /* = NULL */, bool safe /* = false */)
 {
+    load();
     if(safe)
     {
         Files cp = _files;
-        _iterFiles(cp, iterIncref<File>, NULL);
         _iterFiles(cp, f, user);
-        _iterFiles(cp, iterDecref<File>, NULL);
     }
     else
         _iterFiles(_files, f, user);
 }
+
+
+bool Dir::add(File *f)
+{
+    if(!f)
+        return false;
+
+    Files::iterator it = _files.find(f->name());
+
+    if(it != _files.end())
+    {
+        File *oldf = it->second.ptr;
+        if(oldf == f)
+            return false;
+
+        _files.erase(it);
+    }
+
+    _files[f->name()] = f;
+    return true;
+}
+
+bool InternalDir::addRecursive(File *f)
+{
+    if(!f)
+        return false;
+
+    // figure out directory from full file name
+    Dir *vdir;
+    size_t prefixLen = f->fullnameLen() - f->nameLen();
+    if(prefixLen)
+    {
+        char *dirname = (char*)VFS_STACK_ALLOC(prefixLen);
+        --prefixLen; // -1 to strip the trailing '/'. That's the position where to put the terminating null byte.
+        memcpy(dirname, f->fullname(), prefixLen); // copy trailing null byte
+        dirname[prefixLen] = 0;
+        vdir = getDir(dirname, true);
+        VFS_STACK_FREE(dirname);
+    }
+    else
+        vdir = this;
+
+    return vdir->add(f);
+}
+
 
 
 // ----- DiskDir start here -----
@@ -226,17 +272,11 @@ Dir *DiskDir::createNew(const char *dir) const
     return new DiskDir(dir);
 }
 
-unsigned int DiskDir::load(bool recursive)
+void DiskDir::load(bool recursive)
 {
-    Files remainF;
-    Dirs remainD;
+    _files.clear();
+    _subdirs.clear();
 
-    remainF.swap(_files);
-    remainD.swap(_subdirs);
-
-    // _files, _subdirs now empty
-
-    StringList li;
     GetFileList(fullname(), li);
     for(StringList::iterator it = li.begin(); it != li.end(); ++it)
     {

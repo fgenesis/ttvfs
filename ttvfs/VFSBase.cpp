@@ -8,8 +8,7 @@
 VFS_NAMESPACE_START
 
 VFSBase::VFSBase()
-: ref(this)
-, _origin(NULL)
+: _origin(NULL)
 {
 }
 
@@ -19,7 +18,7 @@ void VFSBase::_setName(const char *n)
         return;
     _fullname = n;
     FixPath(_fullname);
-    _name = GetFileNameFromPath(_fullname.c_str());
+    _name = GetBaseNameFromPath(_fullname.c_str());
 }
 
 
