@@ -23,7 +23,7 @@ public:
     {
         ref = val;
     }
-    inline static int s_getRef(T& ref)
+    inline static int s_getRef(const T& ref)
     {
         return ref;
     }
@@ -50,6 +50,10 @@ public:
             // if the refcount is now zero, it will stay zero forever as nobody has a reference anymore
             delete this;
         }
+    }
+    inline int getRefCount() const
+    {
+        return s_getRef(_refcount);
     }
 
 private:

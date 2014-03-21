@@ -55,46 +55,6 @@ template <class T> void StrSplit(const std::string &src, const std::string &sep,
         container.push_back(s);
 }
 
-inline static size_t stringhash(const char *s)
-{
-    size_t h = 0;
-    for( ; *s; ++s)
-    {
-        h += *s;
-        h += ( h << 10 );
-        h ^= ( h >> 6 );
-    }
-
-    h += ( h << 3 );
-    h ^= ( h >> 11 );
-    h += ( h << 15 );
-
-    return h;
-}
-
-inline static size_t stringhash_nocase(const char *s)
-{
-    size_t h = 0;
-    for( ; *s; ++s)
-    {
-        h += tolower(*s);
-        h += ( h << 10 );
-        h ^= ( h >> 6 );
-    }
-
-    h += ( h << 3 );
-    h ^= ( h >> 11 );
-    h += ( h << 15 );
-
-    return h;
-}
-
-#ifdef VFS_IGNORE_CASE
-#  define STRINGHASH(s) stringhash_nocase(s)
-#else
-#  define STRINGHASH(s) stringhash(s)
-#endif
-
 VFS_NAMESPACE_END
 
 #endif

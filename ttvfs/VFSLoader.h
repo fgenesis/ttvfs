@@ -17,14 +17,20 @@ class Dir;
 class VFSLoader : public Refcounted
 {
 public:
+    VFSLoader();
     virtual ~VFSLoader() {}
     virtual File *Load(const char *fn, const char *unmangled) = 0;
     virtual Dir *LoadDir(const char *fn, const char *unmangled) { return NULL; }
+
+    inline Dir *GetRoot() const { return root; }
+protected:
+    Dir *root;
 };
 
 class DiskLoader : public VFSLoader
 {
 public:
+    DiskLoader();
     virtual ~DiskLoader() {}
     virtual File *Load(const char *fn, const char *unmangled);
     virtual Dir *LoadDir(const char *fn, const char *unmangled);

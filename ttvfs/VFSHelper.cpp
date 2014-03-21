@@ -187,7 +187,7 @@ inline static File *VFSHelper_GetFileByLoader(VFSLoader *ldr, const char *fn, co
         return NULL;
     File *vf = ldr->Load(fn, unmangled);
     if(vf)
-        root->addRecursive(vf);
+        ldr->GetRoot()->addRecursive(vf);
     return vf;
 }
 
@@ -214,7 +214,7 @@ File *VFSHelper::GetFile(const char *fn)
     return vf;
 }
 
-inline static Dir *VFSHelper_GetDirByLoader(VFSLoader *ldr, const char *fn, const char *unmangled, Dir *root)
+inline static Dir *VFSHelper_GetDirByLoader(VFSLoader *ldr, const char *fn, const char *unmangled, DirBase *root)
 {
     if(!ldr)
         return NULL;
@@ -242,7 +242,7 @@ DirBase *VFSHelper::GetDir(const char* dn, bool create /* = false */)
         return NULL;
     if(!*dn)
         return merged;
-    Dir *vd = merged->getDir(dn);
+    DirBase *vd = merged->getDir(dn);
 
     if(!vd && create)
     {
@@ -259,7 +259,7 @@ DirBase *VFSHelper::GetDir(const char* dn, bool create /* = false */)
     return vd;
 }
 
-Dir *VFSHelper::GetDirRoot(void)
+DirBase *VFSHelper::GetDirRoot(void)
 {
     return merged;
 }
@@ -277,11 +277,11 @@ void VFSHelper::ClearGarbage(void)
 
 struct _DbgParams
 {
-    _DbgParams(std::ostream& os_, Dir *parent_, const std::string& sp_)
+    _DbgParams(std::ostream& os_, DirBase *parent_, const std::string& sp_)
         : os(os_), parent(parent_), sp(sp_) {}
 
     std::ostream& os;
-    Dir *parent;
+    DirBase *parent;
     const std::string& sp;
 };
 
@@ -289,7 +289,7 @@ static void _DumpFile(File *vf, void *user)
 {
     _DbgParams& p = *((_DbgParams*)user);
 
-    p.os << p.sp << "f|" << vf->name() << " [" << vf->getType() << ", ref " << vf->ref.count() << ", 0x" << vf << "]";
+    p.os << p.sp << "f|" << vf->name() << " [" << vf->getType() << ", ref " << vf->getRefCount() << ", 0x" << vf << "]";
 
     if(strncmp(p.parent->fullname(), vf->fullname(), p.parent->fullnameLen()))
         p.os << " <-- {" << vf->fullname() << "} ***********";
@@ -297,13 +297,13 @@ static void _DumpFile(File *vf, void *user)
     p.os << std::endl;
 }
 
-static void _DumpTreeRecursive(Dir *vd, void *user)
+static void _DumpTreeRecursive(DirBase *vd, void *user)
 {
     _DbgParams& p = *((_DbgParams*)user);
 
     std::string sub = p.sp + "  ";
 
-    p.os << p.sp << "d|" << vd->name() << " [" << vd->getType() << ", ref " << vd->ref.count() << ", 0x" << vd << "]";
+    p.os << p.sp << "d|" << vd->name() << " [" << vd->getType() << ", ref " << vd->getRefCount() << ", 0x" << vd << "]";
 
     if(p.parent && strncmp(p.parent->fullname(), vd->fullname(), strlen(p.parent->fullname())))
         p.os << " <-- {" << vd->fullname() << "} ***********";
@@ -320,7 +320,7 @@ static void _DumpTreeRecursive(Dir *vd, void *user)
 void VFSHelper::debugDumpTree(std::ostream& os, Dir *start /* = NULL */)
 {
     _DbgParams recP(os, NULL, "");
-    Dir *d = start ? start : GetDirRoot();
+    DirBase *d = start ? start : GetDirRoot();
     _DumpTreeRecursive(d, &recP);
 }
 

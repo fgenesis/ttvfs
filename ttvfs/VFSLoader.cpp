@@ -9,6 +9,12 @@
 
 VFS_NAMESPACE_START
 
+VFSLoader::VFSLoader()
+: root(NULL)
+{
+}
+
+
 #if !defined(_WIN32) && defined(VFS_IGNORE_CASE)
 
 #include <dirent.h>
@@ -77,6 +83,12 @@ static bool findFileHarder(char *fn)
 }
 #endif
 
+
+
+DiskLoader::DiskLoader()
+{
+    root = new DiskDir("");
+}
 
 File *DiskLoader::Load(const char *fn, const char * /*ignored*/)
 {
