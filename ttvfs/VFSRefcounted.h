@@ -1,8 +1,8 @@
 #ifndef VFS_REFCOUNTED_H
 #define VFS_REFCOUNTED_H
 
-#include "VFSInternal.h"
 #include <algorithm>
+#include <cassert>
 
 VFS_NAMESPACE_START
 

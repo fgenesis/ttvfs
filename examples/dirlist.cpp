@@ -1,8 +1,7 @@
 
 /* Test for directory listing correctness */
 
-#include <VFS.h>
-#include <VFSTools.h>
+#include <ttvfs.h>
 #include <cstdio>
 
 int main(int argc, char *argv[])

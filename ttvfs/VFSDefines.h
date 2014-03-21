@@ -6,9 +6,6 @@
 
 /* --- Config section -- modify as needed --- */
 
-// choose a namespace name, or comment out to disable namespacing completely (not recommended)
-#define VFS_NAMESPACE ttvfs
-
 // Define this to allow dealing with files > 4 GB, using non-standard functions.
 // This may or may not work with your platform/compiler, good luck.
 //#define VFS_LARGEFILE_SUPPORT
@@ -39,13 +36,8 @@
 /* --- End of config section --- */
 
 
-#ifdef VFS_NAMESPACE
-#    define VFS_NAMESPACE_START namespace VFS_NAMESPACE {
-#    define VFS_NAMESPACE_END }
-#else
-#    define VFS_NAMESPACE_START
-#    define VFS_NAMESPACE_END
-#endif
+#define VFS_NAMESPACE_START namespace ttvfs {
+#define VFS_NAMESPACE_END }
 
 VFS_NAMESPACE_START
 

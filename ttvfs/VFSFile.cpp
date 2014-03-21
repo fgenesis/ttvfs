@@ -6,6 +6,8 @@
 #include "VFSTools.h"
 #include "VFSFileFuncs.h"
 
+#include <cstdio> // for SEEK_* constants
+
 VFS_NAMESPACE_START
 
 File::File(const char *name)
@@ -15,7 +17,6 @@ File::File(const char *name)
 
 File::~File()
 {
-    close();
 }
 
 DiskFile::DiskFile(const char *name /* = NULL */)
@@ -25,6 +26,7 @@ DiskFile::DiskFile(const char *name /* = NULL */)
 
 DiskFile::~DiskFile()
 {
+    close();
 }
 
 bool DiskFile::open(const char *mode /* = NULL */)
@@ -37,17 +39,17 @@ bool DiskFile::open(const char *mode /* = NULL */)
     return !!_fh;
 }
 
-bool DiskFile::isopen(void) const
+bool DiskFile::isopen() const
 {
     return !!_fh;
 }
 
-bool DiskFile::iseof(void) const
+bool DiskFile::iseof() const
 {
     return !_fh || real_feof((FILE*)_fh);
 }
 
-bool DiskFile::close(void)
+bool DiskFile::close()
 {
     if(_fh)
     {
@@ -57,64 +59,95 @@ bool DiskFile::close(void)
     return true;
 }
 
-bool DiskFile::seek(vfspos pos)
+bool DiskFile::seek(vfspos pos, int whence)
 {
-    if(!_fh)
-        return false;
-    return real_fseek((FILE*)_fh, pos, SEEK_SET) == 0;
+    return _fh && real_fseek((FILE*)_fh, pos, whence) == 0;
 }
 
-bool DiskFile::seekRel(vfspos offs)
+
+bool DiskFile::flush()
 {
-    if(!_fh)
-        return false;
-    return real_fseek((FILE*)_fh, offs, SEEK_CUR) == 0;
+    return _fh && real_fflush((FILE*)_fh) == 0;
 }
 
-bool DiskFile::flush(void)
+vfspos DiskFile::getpos() const
 {
-    if(!_fh)
-        return false;
-    return real_fflush((FILE*)_fh) == 0;
-}
-
-vfspos DiskFile::getpos(void) const
-{
-    if(!_fh)
-        return npos;
-    return real_ftell((FILE*)_fh);
+    return _fh ? real_ftell((FILE*)_fh) : npos;
 }
 
 unsigned int DiskFile::read(void *dst, unsigned int bytes)
 {
-    if(!_fh)
-        return npos;
-    return real_fread(dst, 1, bytes, (FILE*)_fh);
+    return _fh ? real_fread(dst, 1, bytes, (FILE*)_fh) : 0;
 }
 
 unsigned int DiskFile::write(const void *src, unsigned int bytes)
 {
-    if(!_fh)
-        return npos;
-    return real_fwrite(src, 1, bytes, (FILE*)_fh);
+    return _fh ? real_fwrite(src, 1, bytes, (FILE*)_fh) : 0;
 }
 
-vfspos DiskFile::size(void)
+vfspos DiskFile::size()
 {
     return GetFileSize(fullname());
 }
 
 // ------------- MemFile -----------------------
 
-MemFile::MemFile(const char *name, void *buf, unsigned int size, delete_func delfunc /* = NULL */)
-: File(name), _pos(0), _size(size), _buf(buf), _delfunc(delfunc)
+MemFile::MemFile(const char *name, void *buf, unsigned int size, delete_func delfunc /* = NULL */, DeleteMode delmode /* = ON_CLOSE */)
+: File(name), _pos(0), _size(size), _buf(buf), _delfunc(delfunc), _delmode(delmode)
 {
 }
 
 MemFile::~MemFile()
 {
+    if(_delmode == ON_DESTROY)
+        _clearMem();
+}
+
+void MemFile::_clearMem()
+{
     if(_delfunc)
         _delfunc(_buf);
+    _delfunc = NULL;
+    _buf = NULL;
+    _size = 0;
+    _pos = 0;
+}
+
+bool MemFile::close()
+{
+    if(_delmode == ON_CLOSE)
+        _clearMem();
+    return true;
+}
+
+bool MemFile::seek(vfspos pos, int whence)
+{
+    switch(whence)
+    {
+        case SEEK_SET:
+            if(pos < _size)
+            {
+                _pos = pos;
+                return true;
+            }
+            break;
+
+        case SEEK_CUR:
+            if(_pos + pos < _size)
+            {
+                _pos += pos;
+                return true;
+            }
+            break;
+
+        case SEEK_END:
+            if(pos < _size)
+            {
+                _pos = _size - pos;
+                return true;
+            }
+    }
+    return false;
 }
 
 unsigned int MemFile::read(void *dst, unsigned int bytes)

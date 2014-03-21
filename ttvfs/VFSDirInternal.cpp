@@ -1,4 +1,5 @@
 #include "VFSDirInternal.h"
+#include "VFSInternal.h"
 #include "VFSFile.h"
 #include <algorithm>
 

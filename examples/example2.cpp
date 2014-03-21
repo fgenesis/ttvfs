@@ -2,7 +2,7 @@
 /* ttvfs example #2 - init, mounting and basic tree operations */
 
 #include <iostream>
-#include <VFS.h>
+#include <ttvfs.h>
 
 ttvfs::VFSHelper vfs;
 

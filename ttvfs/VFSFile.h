@@ -23,40 +23,38 @@ class File : public VFSBase
 {
 public:
 
-    /** The ctor is expected to set both name() and fullname();
-        The name must remain static throughout the object's lifetime. */
-    File(const char *fn);
-
     virtual ~File();
 
     /** Open a file.
         Mode can be "r", "w", "rb", "rb", and possibly other things that fopen supports.
         It is the subclass's choice to support other modes. Default is "rb".
         Closes and reopens if already open (even in the same mode). */
-    virtual bool open(const char *mode = NULL) { return false; }
+    virtual bool open(const char *mode = NULL) = 0;
 
-    virtual bool isopen(void) const { return false; }
-    virtual bool iseof(void) const { return true; }
-    virtual bool close(void) { return true; }
-    virtual bool seek(vfspos pos) { return false; }
+    virtual bool isopen() const = 0;
+    virtual bool iseof() const = 0;
+    virtual bool close() = 0;
+    virtual bool seek(vfspos pos, int whence) = 0;
 
-    /** Seek relative to current position. Negative numbers will seek backwards.
-        (In most cases, the default implementation does not have to be changed) */
-    virtual bool seekRel(vfspos offs) { return seek(getpos() + offs); }
-
-    virtual bool flush(void) { return true; }
+    virtual bool flush() = 0;
 
     /** Current offset in file. Return npos if NA. */
-    virtual vfspos getpos(void) const { return npos; }
+    virtual vfspos getpos() const = 0;
 
-    virtual unsigned int read(void *dst, unsigned int bytes) { return 0; }
-    virtual unsigned int write(const void *src, unsigned int bytes) { return 0; }
+    virtual size_t read(void *dst, unsigned int bytes) = 0;
+    virtual size_t write(const void *src, unsigned int bytes) = 0;
 
     /** Return file size. If NA, return npos. If size is not yet known,
         open() and close() may be called (with default args) to find out the size.
         The file is supposed to be in its old state when the function returns,
         that is in the same open state and seek position. */
-    virtual vfspos size(void) { return npos; }
+    virtual vfspos size() = 0;
+
+protected:
+
+    /** The ctor is expected to set both name() and fullname();
+    The name must remain static throughout the object's lifetime. */
+    File(const char *fn);
 };
 
 class DiskFile : public File
@@ -65,17 +63,16 @@ public:
     DiskFile(const char *name);
     virtual ~DiskFile();
     virtual bool open(const char *mode = NULL);
-    virtual bool isopen(void) const;
-    virtual bool iseof(void) const;
-    virtual bool close(void);
-    virtual bool seek(vfspos pos);
-    virtual bool seekRel(vfspos offs);
-    virtual bool flush(void);
-    virtual vfspos getpos(void) const;
-    virtual unsigned int read(void *dst, unsigned int bytes);
-    virtual unsigned int write(const void *src, unsigned int bytes);
-    virtual vfspos size(void);
-    virtual const char *getType(void) const { return "DiskFile"; }
+    virtual bool isopen() const;
+    virtual bool iseof() const;
+    virtual bool close();
+    virtual bool seek(vfspos pos, int whence);
+    virtual bool flush();
+    virtual vfspos getpos() const;
+    virtual size_t read(void *dst, unsigned int bytes);
+    virtual size_t write(const void *src, unsigned int bytes);
+    virtual vfspos size();
+    virtual const char *getType() const { return "DiskFile"; }
 
     inline void *getFP() { return _fh; }
 
@@ -88,31 +85,38 @@ protected:
 class MemFile : public File
 {
 public:
+    enum DeleteMode
+    {
+        ON_CLOSE,
+        ON_DESTROY
+    };
     /* Creates a virtual file from a memory buffer. The buffer is passed as-is,
        so for text files you should make sure it ends with a \0 character.
        A deletor function can be passed optionally, that the buffer will be passed to
        when the memory file is destroyed. Pass NULL or leave away to keep the buffer alive. */
-    MemFile(const char *name, void *buf, unsigned int size, delete_func delfunc = NULL);
+    MemFile(const char *name, void *buf, unsigned int size, delete_func delfunc = NULL, DeleteMode delmode = ON_CLOSE);
     virtual ~MemFile();
     virtual bool open(const char *mode = NULL) { return true; }
-    virtual bool isopen(void) const { return true; } // always open
-    virtual bool iseof(void) const { return _pos >= _size; }
-    virtual bool close(void) { return true; } // cant close, but not a problem
-    virtual bool seek(vfspos pos) { _pos = pos; return true; }
-    virtual bool seekRel(vfspos offs) { _pos += offs; return true; }
-    virtual bool flush(void) { return true; }
-    virtual vfspos getpos(void) const { return _pos; }
-    virtual unsigned int read(void *dst, unsigned int bytes);
-    virtual unsigned int write(const void *src, unsigned int bytes);
-    virtual vfspos size(void) { return _size; }
-    virtual const char *getType(void) const { return "MemFile"; }
+    virtual bool isopen() const { return !!_buf; } // always open
+    virtual bool iseof() const { return _pos >= _size; }
+    virtual bool close();
+    virtual bool seek(vfspos pos, int whence);
+    virtual bool flush() { return true; }
+    virtual vfspos getpos() const { return _pos; }
+    virtual size_t read(void *dst, unsigned int bytes);
+    virtual size_t write(const void *src, unsigned int bytes);
+    virtual vfspos size() { return _size; }
+    virtual const char *getType() const { return "MemFile"; }
 
 protected:
+
+    void _clearMem();
 
     void *_buf;
     vfspos _pos;
     vfspos _size;
     delete_func _delfunc;
+    DeleteMode _delmode;
 };
 
 VFS_NAMESPACE_END

@@ -1,7 +1,7 @@
 
 /* ttvfs example #6 - System specific directories and mount points */
 
-#include <VFS.h>
+#include <ttvfs.h>
 #include <iostream>
 
 static void FileCallback(ttvfs::VFSFile *vf, void * /*unused*/)

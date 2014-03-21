@@ -4,7 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <VFS.h>
+#include <ttvfs.h>
 
 ttvfs::VFSHelper vfs;
 

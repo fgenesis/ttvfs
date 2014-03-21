@@ -1,27 +1,33 @@
 
 /* ttvfs example #1 - the most simple way to get started */
 
-#include <VFS.h>
+#include <ttvfs.h>
 #include <cstdio>
 
 int main(int argc, char *argv[])
 {
     ttvfs::VFSHelper vfs;
+    vfs.AddLoader(new ttvfs::DiskLoader);
 
-    // Load all files from all subdirs, recursively
-    vfs.LoadFileSysRoot(true);
-
-    // Make the VFS usable
-    vfs.Prepare();
-
-    ttvfs::VFSFile *vf = vfs.GetFile("myfile.txt");
+    ttvfs::File *vf = vfs.GetFile("myfile.txt");
     if(!vf)
     {
-        puts("ERROR\n"); // failed to find file
-        return 1; 
+        printf("ERROR: myfile.txt does not exist\n");
+        return 1;
+    }
+    if(!vf->open("r"))
+    {
+        printf("ERROR: Failed to open myfile.txt for reading\n");
+        return 2;
     }
 
-    puts((const char*)vf->getBuf()); // dump to console
+    char buf[513];
+    size_t bytes = vf->read(buf, 512);
+    buf[bytes] = 0;
+
+    puts(buf);
+
+    vf->close();
 
     return 0;
 }
