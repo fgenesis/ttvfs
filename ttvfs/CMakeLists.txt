@@ -1,12 +1,14 @@
 
 set(ttvfs_SRC
-    VFS.h
+    ttvfs.h
     VFSArchiveLoader.h
     VFSBase.cpp
     VFSBase.h
     VFSDefines.h
     VFSDir.cpp
     VFSDir.h
+    VFSDirInternal.cpp
+    VFSDirInternal.h
     VFSFile.cpp
     VFSFile.h
     VFSFileFuncs.cpp

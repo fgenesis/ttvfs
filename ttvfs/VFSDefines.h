@@ -23,16 +23,10 @@
 // on disk (see VFSLoader.cpp).
 //#define VFS_IGNORE_CASE
 
-// By default, ttvfs uses a std::map to store stuff.
-// Uncomment the line below to use an (experimental!) hashmap.
-// With std::map, iterating over entries will always deliver them in sorted order.
-// The hashmap will deliver entries in random order, but lookup will be much faster
-// (especially if VFS_IGNORE_CASE is set!)
-//#define VFS_USE_HASHMAP
 
 // These are used for small, temporary memory allocations that can remain on the stack.
 // If alloca is available, this is the preferred way.
-#include <stdlib.h>
+#include <cstdlib>
 #ifdef _WIN32
 #  include <malloc.h> // MSVC/MinGW still need this for alloca. Seems to be windows-specific failure
 #endif
@@ -48,11 +42,9 @@
 #ifdef VFS_NAMESPACE
 #    define VFS_NAMESPACE_START namespace VFS_NAMESPACE {
 #    define VFS_NAMESPACE_END }
-#    define VFS_NAMESPACE_IMPL VFS_NAMESPACE::
 #else
 #    define VFS_NAMESPACE_START
 #    define VFS_NAMESPACE_END
-#    define VFS_NAMESPACE_IMPL
 #endif
 
 VFS_NAMESPACE_START
@@ -69,12 +61,22 @@ VFS_NAMESPACE_START
 #endif
 
 #if defined(_MSC_VER) || defined(__MINGW32__) || defined(__MINGW64__)
-#    define VFS_STRICMP stricmp
+#    define VFS_STRICMP _stricmp
      static const vfspos npos = vfspos(-1i64);
 #else
 #    define VFS_STRICMP strcasecmp
      static const vfspos npos = vfspos(-1LL);
 #endif
+
+typedef void (*delete_func)(void *);
+
+struct _AbiCheck
+{
+    int structSize;
+    int vfsposSize;
+    int largefile;
+    int nocase;
+};
 
 
 VFS_NAMESPACE_END

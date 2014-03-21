@@ -85,27 +85,27 @@ protected:
     void *_buf;
 };
 
-class VFSFileMem : public File
+class MemFile : public File
 {
 public:
     /* Creates a virtual file from a memory buffer. The buffer is passed as-is,
        so for text files you should make sure it ends with a \0 character.
        A deletor function can be passed optionally, that the buffer will be passed to
-       when the memory file is destroyed. */
-    VFSFileMem(const char *name, void *buf, unsigned int size, delete_func delfunc = NULL);
-    virtual ~VFSFileMem();
+       when the memory file is destroyed. Pass NULL or leave away to keep the buffer alive. */
+    MemFile(const char *name, void *buf, unsigned int size, delete_func delfunc = NULL);
+    virtual ~MemFile();
     virtual bool open(const char *mode = NULL) { return true; }
     virtual bool isopen(void) const { return true; } // always open
     virtual bool iseof(void) const { return _pos >= _size; }
     virtual bool close(void) { return true; } // cant close, but not a problem
     virtual bool seek(vfspos pos) { _pos = pos; return true; }
     virtual bool seekRel(vfspos offs) { _pos += offs; return true; }
-    virtual bool flush(void) { return false; } // can't flush, if a successful file write is expected, this IS a problem.
+    virtual bool flush(void) { return true; }
     virtual vfspos getpos(void) const { return _pos; }
     virtual unsigned int read(void *dst, unsigned int bytes);
     virtual unsigned int write(const void *src, unsigned int bytes);
     virtual vfspos size(void) { return _size; }
-    virtual const char *getType(void) const { return "mem"; }
+    virtual const char *getType(void) const { return "MemFile"; }
 
 protected:
 

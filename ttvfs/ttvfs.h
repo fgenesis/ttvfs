@@ -37,13 +37,6 @@ THE SOFTWARE.
 
 VFS_NAMESPACE_START
 
-struct _AbiCheck
-{
-    int structSize;
-    int vfsposSize;
-    int largefile;
-    int nocase;
-}
 bool _checkCompatInternal(_AbiCheck *abi);
 
 /** It is recommended to call this function early in your code

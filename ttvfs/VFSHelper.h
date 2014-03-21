@@ -9,11 +9,14 @@
 #include <string>
 #include <iostream>
 
+#include "VFSRefcounted.h"
+
 
 VFS_NAMESPACE_START
 
+class DirBase;
 class Dir;
-class DiskDir;
+class InternalDir;
 class File;
 class VFSLoader;
 class VFSArchiveLoader;
@@ -26,18 +29,6 @@ public:
     VFSHelper();
     virtual ~VFSHelper();
 
-    /** Creates the working tree. Required before any files or directories can be accessed.
-        Internally, it merges all individual VFS trees into one. If clear is true (default),
-        an existing merged tree is dropped, and old and previously added files removed.
-        (This is the recommended setting.)
-        Mount points and loaders are kept.*/
-    virtual void Prepare(bool clear = true);
-
-    /** Re-merges any files in the tree, and optionally reloads files on disk.
-        This is useful if files on disk were created or removed, and the tree needs to reflect these changes.
-        Calls Prepare(clear) internally. */
-    virtual void Reload(bool fromDisk = false, bool clear = false, bool clearMountPoints = false);
-
     /** Reset an instance to its initial state.
         Drops all archives, loaders, archive loaders, mount points, internal trees, ...*/
     virtual void Clear(void);
@@ -46,14 +37,11 @@ public:
         Extensions may wish to override this method do do cleanup jobs. */
     virtual void ClearGarbage(void);
 
-    /** Load all files from working directory (into an internal tree) */
-    bool LoadFileSysRoot(bool recursive);
-
     /** Mount a directory in the tree to a different location. Requires a previous call to Prepare().
         This can be imagined like a symlink pointing to a different location.
         Be careful not to create circles, this might technically work,
         but confuses the reference counting, causing memory leaks. */
-    bool Mount(const char *src, const char *dest, bool overwrite = true);
+    bool Mount(const char *src, const char *dest);
 
     /** Drops a directory from the tree. Internally, this calls Reload(false), 
         which is a heavy operation compared to Mount(). Be warned. */
@@ -68,14 +56,14 @@ public:
         Rule of thumb: If you called LoadFileSysRoot(), do not use this for subdirs.
         Note: Directories mounted with this will return `where` as their full path if it was set.
               Use GetMountPoint() to retrieve the underlying Dir object. */
-    bool MountExternalPath(const char *path, const char *where = "", bool loadRec = false, bool overwrite = true);
+    bool MountExternalPath(const char *path, const char *where = "");
 
     /** Adds a Dir object into the merged tree. If subdir is NULL (the default),
         add into the subdir stored in the Dir object. The tree will be extended if target dir does not exist.
         If overwrite is true (the default), files in the tree will be replaced if already existing.
         Requires a previous call to Prepare().
         Like with Mount(); be careful not to create cycles. */
-    bool AddVFSDir(Dir *dir, const char *subdir = NULL, bool overwrite = true);
+    bool AddVFSDir(DirBase *dir, const char *subdir = NULL);
 
     /** Add the contents of an archive file to the tree. By default, the archive can be addressed
         like a folder, e.g. "path/to/example.zip/file.txt".
@@ -86,7 +74,7 @@ public:
         such as a password to open the file.
         Read the comments in VFSArchiveLoader.h for an explanation how it works. If you have no idea, leave it NULL,
         because it can easily cause a crash if not used carefully. */
-    Dir *AddArchive(const char *arch, bool asSubdir = true, const char *subdir = NULL, void *opaque = NULL);
+    Dir *AddArchive(const char *arch, void *opaque = NULL);
 
     /** Add a loader that can look for files on demand.
         It is possible (but not a good idea) to add a loader multiple times. */
@@ -109,17 +97,10 @@ public:
         build the tree structure and return the newly created dir. NULL otherwise.
         Requires a previous call to Prepare().
         Reference counted, same as GetFile(), look there for more info. */
-    Dir *GetDir(const char* dn, bool create = false);
+    DirBase *GetDir(const char* dn, bool create = false);
 
     /** Returns the tree root, which is usually the working directory. */
-    Dir *GetDirRoot(void);
-
-    /** Returns one of the root tree sources by their internal name. */
-    Dir *GetBaseTree(const char *path);
-
-    /** Returns one of the mount points' base directory
-        (The one that is normally not acessible) */
-    Dir *GetMountPoint(const char *path);
+    DirBase *GetDirRoot(void);
 
     /** Remove a file or directory from the tree */
     //bool Remove(File *vf);
@@ -137,41 +118,25 @@ protected:
 
     struct VDirEntry
     {
-        VDirEntry() : vdir(NULL), overwrite(false) {}
-        VDirEntry(Dir *v, std::string mp, bool ow) : vdir(v), mountPoint(mp), overwrite(ow) {}
-        Dir *vdir;
+        VDirEntry() : vdir(NULL) {}
+        VDirEntry(DirBase *v, const std::string& mp) : vdir(v), mountPoint(mp) {}
+        CountedPtr<DirBase> vdir;
         std::string mountPoint;
-        bool overwrite;
     };
 
-    struct BaseTreeEntry
-    {
-        std::string source;
-        Dir *dir;
-    };
 
     typedef std::list<VDirEntry> VFSMountList;
-    typedef std::vector<VFSLoader*> LoaderArray;
-    typedef std::vector<VFSArchiveLoader*> ArchiveLoaderArray;
-    typedef std::vector<BaseTreeEntry> DirArray;
+    typedef std::vector<CountedPtr<VFSLoader> > LoaderArray;
+    typedef std::vector<CountedPtr<VFSArchiveLoader> > ArchiveLoaderArray;
 
 
     void _StoreMountPoint(const VDirEntry& ve);
     bool _RemoveMountPoint(const VDirEntry& ve);
-    void _ClearMountPoints(void);
-
-    // the VFSDirs are merged in their declaration order.
-    // when merging, files already contained can be overwritten by files merged in later.
-    DiskDir *filesysRoot; // local files on disk (root dir)
-
-    // VFSDirs from various sources are stored here, and will be merged into one final tree
-    // by Prepare().
-    DirArray trees;
 
     // If files are not in the tree, maybe one of these is able to find it.
     LoaderArray loaders;
 
-    Dir *merged; // contains the merged virtual/actual file system tree
+    CountedPtr<InternalDir> merged; // contains the merged virtual/actual file system tree
 
 private:
     VFSMountList vlist; // all other trees added later, together with path to mount to

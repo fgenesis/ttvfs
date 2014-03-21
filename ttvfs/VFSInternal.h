@@ -29,7 +29,7 @@
 #   pragma warning(disable: 4355) // 'this' : used in base member initializer list
 #endif
 
-template <typename DST, typename SRC> inline DST safecast(const SRC *p)
+template <typename DST, typename SRC> inline DST safecast(SRC p)
 {
 #ifndef NDEBUG
     assert(!p || static_cast<DST>(p) == dynamic_cast<DST>(p));
@@ -37,7 +37,7 @@ template <typename DST, typename SRC> inline DST safecast(const SRC *p)
     return static_cast<DST>(p);
 }
 
-template <typename DST, typename SRC> inline DST safecastNonNull(const SRC *p)
+template <typename DST, typename SRC> inline DST safecastNonNull(SRC p)
 {
 #ifndef NDEBUG
     assert(p && static_cast<DST>(p) == dynamic_cast<DST>(p));

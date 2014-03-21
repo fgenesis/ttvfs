@@ -78,7 +78,7 @@ static bool findFileHarder(char *fn)
 #endif
 
 
-File *VFSLoaderDisk::Load(const char *fn, const char * /*ignored*/)
+File *DiskLoader::Load(const char *fn, const char * /*ignored*/)
 {
     if(FileExists(fn))
         return new DiskFile(fn); // must contain full file name
@@ -97,7 +97,7 @@ File *VFSLoaderDisk::Load(const char *fn, const char * /*ignored*/)
     return vf;
 }
 
-Dir *VFSLoaderDisk::LoadDir(const char *fn, const char * /*ignored*/)
+Dir *DiskLoader::LoadDir(const char *fn, const char * /*ignored*/)
 {
     if(IsDirectory(fn))
         return new DiskDir(fn); // must contain full file name

@@ -1,4 +1,8 @@
-#include "VFSFileFuncs.h"
+#ifdef _MSC_VER
+#    define _CRT_SECURE_NO_WARNINGS
+#endif
+
+#include "VFSDefines.h"
 
 // this is for POSIX - define before including any stdio headers
 #ifdef VFS_LARGEFILE_SUPPORT
@@ -7,6 +11,7 @@
 #    endif
 #endif
 
+#include "VFSFileFuncs.h"
 #include "VFSInternal.h"
 
 #include <cstdio>

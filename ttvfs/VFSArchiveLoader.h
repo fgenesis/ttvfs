@@ -2,6 +2,7 @@
 #define VFS_ARCHIVE_LOADER_H
 
 #include "VFSDefines.h"
+#include "VFSRefcounted.h"
 
 VFS_NAMESPACE_START
 
@@ -24,7 +25,7 @@ class VFSLoader;
 //            modify this object.
 //            The const char parameter is a string unique for each loader (to prevent accessing the pointer
 //            in a wrong way by the wrong loader). Example below.
-class VFSArchiveLoader
+class VFSArchiveLoader : public Refcounted
 {
 public:
     virtual ~VFSArchiveLoader() {}

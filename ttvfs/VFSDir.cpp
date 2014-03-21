@@ -39,7 +39,7 @@ File *DirBase::getFile(const char *fn)
         char *dup = (char*)VFS_STACK_ALLOC(len + 1);
         memcpy(dup, fn, len + 1); // also copy the null-byte
         slashpos = dup + (slashpos - fn); // use direct offset, not to have to recount again the first time
-        Dir *subdir = this;
+        DirBase *subdir = this;
         const char *ptr = dup;
         Dirs::iterator it;
 
@@ -57,7 +57,7 @@ File *DirBase::getFile(const char *fn)
             *slashpos = 0;
             it = subdir->_subdirs.find(ptr);
             if(it != subdir->_subdirs.end())
-                subdir = it->second.ptr; // found it
+                subdir = it->second; // found it
             else
                 subdir = NULL; // bail out
         }
@@ -75,12 +75,12 @@ File *DirBase::getFile(const char *fn)
 }
 
 
-Dir *DirBase::getDir(const char *subdir, bool forceCreate /* = false */)
+DirBase *DirBase::getDir(const char *subdir, bool forceCreate /* = false */)
 {
     if(!subdir[0] || (subdir[0] == '.' && (!subdir[1] || subdir[1] == '/'))) // empty string or "." or "./" ? use this.
         return this;
 
-    Dir *ret = NULL;
+    DirBase *ret = NULL;
     char *slashpos = (char *)strchr(subdir, '/');
 
     // if there is a '/' in the string, descend into subdir and continue there
@@ -96,13 +96,13 @@ Dir *DirBase::getDir(const char *subdir, bool forceCreate /* = false */)
         if(it != _subdirs.end())
         {
             // TODO: get rid of recursion
-            ret = it->second.ptr->getDir(sub, forceCreate); // descend into subdirs
+            ret = it->second->getDir(sub, forceCreate); // descend into subdirs
         }
         else if(forceCreate)
         {
             // -> newname = fullname() + '/' + t
             size_t fullLen = fullnameLen();
-            Dir *ins;
+            DirBase *ins;
             if(fullLen)
             {
                 char * const newname = (char*)VFS_STACK_ALLOC(fullLen + copysize + 2);
@@ -126,7 +126,7 @@ Dir *DirBase::getDir(const char *subdir, bool forceCreate /* = false */)
     {
         Dirs::iterator it = _subdirs.find(subdir);
         if(it != _subdirs.end())
-            ret = it->second.ptr;
+            ret = it->second;
         else if(forceCreate)
         {
             size_t fullLen = fullnameLen();
@@ -157,6 +157,24 @@ Dir *DirBase::getDir(const char *subdir, bool forceCreate /* = false */)
     return ret;
 }
 
+static void _iterDirs(const Dirs &m, DirEnumCallback f, void *user)
+{
+    for(Dirs::const_iterator it = m.begin(); it != m.end(); ++it)
+        f(const_cast<DirBase*>(it->second.content()), user);
+}
+
+void DirBase::forEachDir(DirEnumCallback f, void *user /* = NULL */, bool safe /* = false */)
+{
+    if(safe)
+    {
+        Dirs cp = _subdirs;
+        _iterDirs(cp, f, user);
+    }
+    else
+        _iterDirs(_subdirs, f, user);
+}
+
+
 
 Dir::Dir(const char *fullpath)
 : DirBase(fullpath)
@@ -173,33 +191,10 @@ File *Dir::getFileByName(const char *fn) const
     return it == _files.end() ? NULL : it->second;
 }
 
-File *Dir::getDirByName(const char *fn) const
-{
-    Dirs::const_iterator it = _subdirs.find(fn);
-    return it == _subdirs.end() ? NULL : it->second;
-}
-
-static void _iterDirs(const Dir::Dirs &m, DirEnumCallback f, void *user)
-{
-    for(Dirs::const_iterator it = m.begin(); it != m.end(); ++it)
-        f(it->second.ptr, user);
-}
-
-void Dir::forEachDir(DirEnumCallback f, void *user /* = NULL */, bool safe /* = false */)
-{
-    if(safe)
-    {
-        Dirs cp = _subdirs;
-        _iterDirs(cp, f, user);
-    }
-    else
-        _iterDirs(_subdirs, f, user);
-}
-
-static void _iterFiles(const Dir::Files &m, FileEnumCallback f, void *user)
+static void _iterFiles(const Files &m, FileEnumCallback f, void *user)
 {
     for(Files::const_iterator it = m.begin(); it != m.end(); ++it)
-        f(it->second.ptr, user);
+        f(const_cast<File*>(it->second.content()), user);
 }
 
 void Dir::forEachFile(FileEnumCallback f, void *user /* = NULL */, bool safe /* = false */)
@@ -224,7 +219,7 @@ bool Dir::add(File *f)
 
     if(it != _files.end())
     {
-        File *oldf = it->second.ptr;
+        File *oldf = it->second;
         if(oldf == f)
             return false;
 
@@ -235,7 +230,7 @@ bool Dir::add(File *f)
     return true;
 }
 
-bool InternalDir::addRecursive(File *f)
+bool Dir::addRecursive(File *f)
 {
     if(!f)
         return false;
@@ -249,7 +244,7 @@ bool InternalDir::addRecursive(File *f)
         --prefixLen; // -1 to strip the trailing '/'. That's the position where to put the terminating null byte.
         memcpy(dirname, f->fullname(), prefixLen); // copy trailing null byte
         dirname[prefixLen] = 0;
-        vdir = getDir(dirname, true);
+        vdir = safecastNonNull<Dir*>(getDir(dirname, true));
         VFS_STACK_FREE(dirname);
     }
     else
@@ -267,80 +262,41 @@ DiskDir::DiskDir(const char *dir) : Dir(dir)
 {
 }
 
-Dir *DiskDir::createNew(const char *dir) const
+DiskDir *DiskDir::createNew(const char *dir) const
 {
     return new DiskDir(dir);
 }
 
-void DiskDir::load(bool recursive)
+void DiskDir::load()
 {
     _files.clear();
     _subdirs.clear();
 
+    StringList li;
     GetFileList(fullname(), li);
     for(StringList::iterator it = li.begin(); it != li.end(); ++it)
     {
-        // file was already present, move over and erase
-        FileIter fi = remainF.find(it->c_str());
-        if(fi != remainF.end())
-        {
-            _files[fi->first] = fi->second;
-            remainF.erase(fi);
-            continue;
-        }
-
         // TODO: use stack alloc
         std::string tmp = fullname();
         tmp += '/';
         tmp += *it;
+
         DiskFile *f = new DiskFile(tmp.c_str());
         _files[f->name()] = f;
     }
-    unsigned int sum = li.size();
 
     li.clear();
     GetDirList(fullname(), li, 0);
-    for(std::deque<std::string>::iterator it = li.begin(); it != li.end(); ++it)
+    for(StringList::iterator it = li.begin(); it != li.end(); ++it)
     {
-        // subdir was already present, move over and erase
-        DirIter fi = remainD.find(it->c_str());
-        if(fi != remainD.end())
-        {
-            if(recursive)
-                sum += fi->second.ptr->load(true);
-            ++sum;
-
-            _subdirs[fi->first] = fi->second;
-            remainD.erase(fi);
-            continue;
-        }
-
         // TODO: use stack alloc
         std::string full(fullname());
         full += '/';
         full += *it; // GetDirList() always returns relative paths
 
         Dir *d = createNew(full.c_str());
-        if(recursive)
-            sum += d->load(true);
-        ++sum;
         _subdirs[d->name()] = d;
     }
-
-    // clean up & remove no longer existing files & dirs,
-    // and move over entries mounted here.
-    for(FileIter it = remainF.begin(); it != remainF.end(); ++it)
-        if(it->second.isMounted())
-            _files[it->first] = it->second;
-        else
-            it->second.ptr->ref--;
-    for(DirIter it = remainD.begin(); it != remainD.end(); ++it)
-        if(it->second.isMounted())
-            _subdirs[it->first] = it->second;
-        else
-            it->second.ptr->ref--;
-
-    return sum;
 }
 
 VFS_NAMESPACE_END

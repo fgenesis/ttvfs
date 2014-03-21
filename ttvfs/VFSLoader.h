@@ -6,6 +6,7 @@
 
 #include <cstddef>
 #include "VFSDefines.h"
+#include "VFSRefcounted.h"
 
 VFS_NAMESPACE_START
 
@@ -13,7 +14,7 @@ class File;
 class Dir;
 
 // VFSLoader - to be called if a file is not in the tree.
-class VFSLoader
+class VFSLoader : public Refcounted
 {
 public:
     virtual ~VFSLoader() {}
@@ -21,10 +22,10 @@ public:
     virtual Dir *LoadDir(const char *fn, const char *unmangled) { return NULL; }
 };
 
-class VFSLoaderDisk : public VFSLoader
+class DiskLoader : public VFSLoader
 {
 public:
-    virtual ~VFSLoaderDisk() {}
+    virtual ~DiskLoader() {}
     virtual File *Load(const char *fn, const char *unmangled);
     virtual Dir *LoadDir(const char *fn, const char *unmangled);
 };

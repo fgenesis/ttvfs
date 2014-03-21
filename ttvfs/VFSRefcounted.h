@@ -13,13 +13,13 @@ public:
     // Static methods for refcounting, could overload with atomics if there is the need
     inline static void s_incRef(T& ref)
     {
-        return ++ref;
+        ++ref;
     }
     inline static bool s_decRef(T& ref) // returns true if refcount is zero afterwards
     {
         return (--ref) == 0;
     }
-    inline static bool s_setRef(T& ref, int val)
+    inline static void s_setRef(T& ref, int val)
     {
         ref = val;
     }
@@ -36,16 +36,16 @@ public:
     virtual ~RefcountedT()
     {
         int val = s_getRef(_refcount);
-        assert(val == 0, "Object was deleted with refcount ", val);
+        assert(val == 0 && "Object was deleted with refcount != 0");
     }
 
     inline void incref()
     {
-        s_incRef(refcount);
+        s_incRef(_refcount);
     }
     inline void decref()
     {
-        if (s_decRef(&_refcount))
+        if (s_decRef(_refcount))
         {
             // if the refcount is now zero, it will stay zero forever as nobody has a reference anymore
             delete this;
@@ -68,7 +68,7 @@ public:
         if(_p)
             _p->decref();
     }
-    inline CountedPtr() : _p(nullptr)
+    inline CountedPtr() : _p(NULL)
     {}
     inline CountedPtr(T* p) : _p(p)
     {
@@ -101,12 +101,12 @@ public:
 
     bool operator!() const { return !_p; }
 
-    // Safe for use in if statements
-    operator bool() const  { return _p != nullptr; }
-
     // if you use these, make sure you also keep a counted reference to the object!
     inline operator       T* ()       { return _p; }
     inline operator const T* () const { return _p; }
+
+    inline        T* content()       { return _p; }
+    inline  const T* content() const { return _p; }
 
     bool operator<(const CountedPtr& ref) const { return _p < ref._p; }
     bool operator<=(const CountedPtr& ref) const { return _p <= ref._p; }
@@ -114,6 +114,13 @@ public:
     bool operator!=(const CountedPtr& ref) const { return _p != ref._p; }
     bool operator>=(const CountedPtr& ref) const { return _p >= ref._p; }
     bool operator>(const CountedPtr& ref) const { return _p > ref._p; }
+
+    bool operator<(const T* ptr) const { return _p < ptr; }
+    bool operator<=(const T* ptr) const { return _p <= ptr; }
+    bool operator==(const T* ptr) const { return _p == ptr; }
+    bool operator!=(const T* ptr) const { return _p != ptr; }
+    bool operator>=(const T* ptr) const { return _p >= ptr; }
+    bool operator>(const T* ptr) const { return _p > ptr; }
 
     inline static void swap(CountedPtr& a, CountedPtr& b)
     {

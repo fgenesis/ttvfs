@@ -17,10 +17,6 @@ VFS_NAMESPACE_START
 
 
 #ifdef VFS_IGNORE_CASE
-#  ifdef _MSC_VER
-#    pragma warning(push)
-#    pragma warning(disable: 4996)
-#  endif
 
 struct ci_less
 {
@@ -36,10 +32,6 @@ inline int casecmp(const char *a, const char *b)
     return VFS_STRICMP(a, b);
 }
 
-#  ifdef _MSC_VER
-#    pragma warning(pop)
-#  endif
-
 #else // VFS_IGNORE_CASE
 
 struct cs_less
@@ -49,7 +41,7 @@ struct cs_less
         return strcmp(a, b) < 0;
     }
 };
-typedef cs_less map_cmp;
+typedef cs_less map_compare;
 
 inline int casecmp(const char *a, const char *b)
 {
@@ -72,8 +64,8 @@ typedef void (*DirEnumCallback)(DirBase *vd, void *user);
 // Avoid using std::string as key.
 // The file names are known to remain constant during each object's lifetime,
 // so just keep the pointers and use an appropriate comparator function.
-typedef std::map<const char *, CountedPtr<Dir>, map_cmp> Dirs;
-typedef std::map<const char *, CountedPtr<File>, map_cmp> Files;
+typedef std::map<const char *, CountedPtr<DirBase>, map_compare> Dirs;
+typedef std::map<const char *, CountedPtr<File>, map_compare> Files;
 
 
 class DirBase : public VFSBase
@@ -89,32 +81,36 @@ public:
     /** Returns a subdir, descends if necessary. If forceCreate is true,
     create directory tree if it does not exist, and return the originally requested
     subdir. Otherwise return NULL if not found. */
-    Dir *getDir(const char *subdir, bool forceCreate = false);
+    DirBase *getDir(const char *subdir, bool forceCreate = false);
 
+    /** Can be overloaded if necessary. Called by VFSHelper::ClearGarbage() */
+    virtual void clearGarbage() {}
 
-protected:
+    /** Can be overloaded to close resources this dir keeps open */
+    virtual bool close() { return true; }
+
+    /** Enumerate directory with given path. Clears previously loaded entries. */
+    virtual void load() = 0;
 
     /** Returns a file from this dir's file map.
     Expects the actual file name without path - does NOT descend. */
     virtual File *getFileByName(const char *fn) const = 0;
 
-    /** Enumerate directory with given path. Clears previously loaded entries.
-    Returns the number of files found. */
-    virtual void load() = 0;
-
-    /** Creates a new dir of the same type to be used as child of this. */
-    virtual DirBase *createNew(const char *dir) const = 0;
-
     /** Iterate over all files or directories, calling a callback function,
     optionally with additional userdata. If safe is true, iterate over a copy.
     This is useful if the callback function modifies the tree, e.g.
     adds or removes files. */
-    void forEachFile(FileEnumCallback f, void *user = NULL, bool safe = false) = 0;
-    void forEachDir(DirEnumCallback f, void *user = NULL, bool safe = false) = 0;
+    void forEachDir(DirEnumCallback f, void *user = NULL, bool safe = false); // intentionally non-virtual
+    virtual void forEachFile(FileEnumCallback f, void *user = NULL, bool safe = false) = 0;
+
+
+protected:
+
+    /** Creates a new dir of the same type to be used as child of this. */
+    virtual DirBase *createNew(const char *dir) const = 0;
 
 
     Dirs _subdirs;
-
 };
 
 class Dir : public DirBase
@@ -124,25 +120,20 @@ public:
     Dir(const char *fullpath);
     virtual ~Dir();
 
-    File *Dir::getFileByName(const char *fn) const;
-
-    /** Can be overloaded if necessary. Called by VFSHelper::ClearGarbage() */
-    virtual void clearGarbage() {}
-
-    /** Can be overloaded to close resources this dir keeps open */
-    virtual bool close() { return true; }
-
-
     /** Adds a file directly to this directory, allows any name.
-    If another file with this name already exists, optionally drop the old one out.
-    Returns whether the file was actually added. */
-    bool add(File *f, bool overwrite);
+    If another file with this name already exists, drop the old one out.
+    Returns whether the file was actually added (false if the same file already existed) */
+    bool add(File *f);
 
     /** Like add(), but if the file name contains a path, descend the tree to the target dir.
         Not-existing subdirs are created on the way. */
-    bool addRecursive(File *f, bool overwrite);
+    bool addRecursive(File *f);
+
+    void forEachFile(FileEnumCallback f, void *user = NULL, bool safe = false);
 
 protected:
+
+    File *Dir::getFileByName(const char *fn) const;
 
     Files _files;
 };
@@ -152,8 +143,8 @@ class DiskDir : public Dir
 public:
     DiskDir(const char *dir);
     virtual ~DiskDir() {};
-    virtual unsigned int load(bool recursive);
-    virtual Dir *createNew(const char *dir) const;
+    virtual void load();
+    virtual DiskDir *createNew(const char *dir) const;
     virtual const char *getType(void) const { return "DiskDir"; }
 };
 

@@ -6,8 +6,6 @@
 #include "VFSTools.h"
 #include "VFSFileFuncs.h"
 
-#include <cstdio>
-
 VFS_NAMESPACE_START
 
 File::File(const char *name)
@@ -106,20 +104,20 @@ vfspos DiskFile::size(void)
     return GetFileSize(fullname());
 }
 
-// ------------- VFSFileMem -----------------------
+// ------------- MemFile -----------------------
 
-VFSFileMem::VFSFileMem(const char *name, void *buf, unsigned int size, delete_func delfunc /* = NULL */)
+MemFile::MemFile(const char *name, void *buf, unsigned int size, delete_func delfunc /* = NULL */)
 : File(name), _pos(0), _size(size), _buf(buf), _delfunc(delfunc)
 {
 }
 
-VFSFileMem::~VFSFileMem()
+MemFile::~MemFile()
 {
     if(_delfunc)
         _delfunc(_buf);
 }
 
-unsigned int VFSFileMem::read(void *dst, unsigned int bytes)
+unsigned int MemFile::read(void *dst, unsigned int bytes)
 {
     if(iseof())
         return 0;
@@ -129,7 +127,7 @@ unsigned int VFSFileMem::read(void *dst, unsigned int bytes)
     return rem;
 }
 
-unsigned int VFSFileMem::write(const void *src, unsigned int bytes)
+unsigned int MemFile::write(const void *src, unsigned int bytes)
 {
     if(iseof())
         return 0;

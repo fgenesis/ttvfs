@@ -11,7 +11,7 @@
 VFS_NAMESPACE_START
 
 // Used internally. No special properties, just holds some common code.
-class VFSBase : Refcounted
+class VFSBase : public Refcounted
 {
 public:
     virtual ~VFSBase() {}
