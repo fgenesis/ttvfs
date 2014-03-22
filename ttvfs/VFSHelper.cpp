@@ -45,7 +45,7 @@ bool _checkCompatInternal(_AbiCheck *used)
 }
 
 VFSHelper::VFSHelper()
-: merged(new InternalDir("/"))
+: merged(new InternalDir(""))
 {
 }
 
@@ -84,12 +84,6 @@ bool VFSHelper::AddVFSDir(DirBase *dir, const char *subdir /* = NULL */)
     VDirEntry ve(dir, subdir);
     _StoreMountPoint(ve);
 
-    DirBase *sd = GetDir(subdir, true);
-    if(!sd) // may be NULL if Prepare() was not called before
-        return false;
-    //sd->merge(dir, overwrite, Dir::MOUNTED); // merge into specified subdir. will be (virtually) created if not existing
-    assert(false); // FIXME
-
     return true;
 }
 
@@ -100,13 +94,7 @@ bool VFSHelper::Unmount(const char *src, const char *dest)
         return false;
 
     VDirEntry ve(vd, dest);
-    if(!_RemoveMountPoint(ve))
-        return false;
-
-    // FIXME: this could be done more efficiently by just reloading parts of the tree that were involved.
-    //Reload(false, true, false);
-    assert(false); // FIXME
-    return true;
+    return _RemoveMountPoint(ve);
 }
 
 void VFSHelper::_StoreMountPoint(const VDirEntry& ve)
@@ -117,7 +105,7 @@ void VFSHelper::_StoreMountPoint(const VDirEntry& ve)
     {
         const VDirEntry& oe = *it;
         if (ve.mountPoint == oe.mountPoint
-            && (ve.vdir == oe.vdir || !casecmp(ve.vdir->fullname(), oe.vdir->fullname())) )
+            && (ve.dir == oe.dir || !casecmp(ve.dir->fullname(), oe.dir->fullname())) )
         {
             vlist.erase(it++); // do not break; just in case there are more (fixme?)
         }
@@ -126,6 +114,8 @@ void VFSHelper::_StoreMountPoint(const VDirEntry& ve)
     }
 
     vlist.push_back(ve);
+
+    _RebuildTree();
 }
 
 bool VFSHelper::_RemoveMountPoint(const VDirEntry& ve)
@@ -134,19 +124,32 @@ bool VFSHelper::_RemoveMountPoint(const VDirEntry& ve)
     {
         const VDirEntry& oe = *it;
         if(ve.mountPoint == oe.mountPoint
-            && (ve.vdir == oe.vdir || !casecmp(ve.vdir->fullname(), oe.vdir->fullname())) )
+            && (ve.dir == oe.dir || !casecmp(ve.dir->fullname(), oe.dir->fullname())) )
         {
             vlist.erase(it);
+            _RebuildTree();
             return true;
         }
     }
     return false;
 }
 
+void VFSHelper::_RebuildTree()
+{
+    merged->_clearMountsRec(InternalDir::MOUNT_MOUNTED);
+    for(VFSMountList::iterator it = vlist.begin(); it != vlist.end(); ++it)
+    {
+        VDirEntry& e = *it;
+        InternalDir *indir = safecastNonNull<InternalDir*>(GetDir(e.mountPoint.c_str(), true));
+        indir->_addMountDir(e.dir.content(), InternalDir::MOUNT_MOUNTED);
+    }
+}
+
+
 bool VFSHelper::MountExternalPath(const char *path, const char *where /* = "" */)
 {
-    DiskDir *vfs = new DiskDir(path);
-    return AddVFSDir(vfs, where);
+    CountedPtr<DiskDir> vfs = new DiskDir(path);
+    return AddVFSDir(vfs.content(), where);
 }
 
 void VFSHelper::AddLoader(VFSLoader *ldr)
@@ -187,7 +190,7 @@ inline static File *VFSHelper_GetFileByLoader(VFSLoader *ldr, const char *fn, co
         return NULL;
     File *vf = ldr->Load(fn, unmangled);
     if(vf)
-        ldr->GetRoot()->addRecursive(vf);
+        ldr->getRoot()->addRecursive(vf);
     return vf;
 }
 
@@ -214,21 +217,16 @@ File *VFSHelper::GetFile(const char *fn)
     return vf;
 }
 
-inline static Dir *VFSHelper_GetDirByLoader(VFSLoader *ldr, const char *fn, const char *unmangled, DirBase *root)
+InternalDir *VFSHelper::_GetDirByLoader(VFSLoader *ldr, const char *fn, const char *unmangled)
 {
-    if(!ldr)
-        return NULL;
-    Dir *vd = ldr->LoadDir(fn, unmangled);
-    if(vd)
+    Dir *realdir = ldr->LoadDir(fn, unmangled);
+    InternalDir *ret = NULL;
+    if(realdir)
     {
-        std::string parentname = fn;
-        StripLastPath(parentname);
-
-        DirBase *parent = parentname.empty() ? root : root->getDir(parentname.c_str(), true);
-        //parent->add
-        assert(false); // FIXME
+        ret = safecastNonNull<InternalDir*>(merged->getDir(fn, true));
+        ret->_addMountDir(realdir, InternalDir::MOUNT_FIXED);
     }
-    return vd;
+    return ret;
 }
 
 DirBase *VFSHelper::GetDir(const char* dn, bool create /* = false */)
@@ -238,19 +236,17 @@ DirBase *VFSHelper::GetDir(const char* dn, bool create /* = false */)
     FixPath(fixed);
     dn = fixed.c_str();
 
-    if(!merged)
-        return NULL;
     if(!*dn)
         return merged;
     DirBase *vd = merged->getDir(dn);
 
-    if(!vd && create)
+    if(!vd)
     {
         for(LoaderArray::iterator it = loaders.begin(); it != loaders.end(); ++it)
-            if((vd = VFSHelper_GetDirByLoader(*it, dn, unmangled, GetDirRoot())))
+            if((vd = _GetDirByLoader(*it, dn, unmangled)))
                 break;
 
-        if(!vd)
+        if(!vd && create)
             vd = safecastNonNull<InternalDir*>(merged->getDir(dn, true)); // typecast is for debug checking only
     }
 

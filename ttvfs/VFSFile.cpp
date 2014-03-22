@@ -75,12 +75,12 @@ vfspos DiskFile::getpos() const
     return _fh ? real_ftell((FILE*)_fh) : npos;
 }
 
-unsigned int DiskFile::read(void *dst, unsigned int bytes)
+unsigned int DiskFile::read(void *dst, size_t bytes)
 {
     return _fh ? real_fread(dst, 1, bytes, (FILE*)_fh) : 0;
 }
 
-unsigned int DiskFile::write(const void *src, unsigned int bytes)
+unsigned int DiskFile::write(const void *src, size_t bytes)
 {
     return _fh ? real_fwrite(src, 1, bytes, (FILE*)_fh) : 0;
 }

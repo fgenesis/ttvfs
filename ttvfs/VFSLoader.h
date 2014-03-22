@@ -22,7 +22,7 @@ public:
     virtual File *Load(const char *fn, const char *unmangled) = 0;
     virtual Dir *LoadDir(const char *fn, const char *unmangled) { return NULL; }
 
-    inline Dir *GetRoot() const { return root; }
+    inline Dir *getRoot() const { return root; }
 protected:
     Dir *root;
 };

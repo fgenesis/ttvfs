@@ -41,8 +41,8 @@ public:
     /** Current offset in file. Return npos if NA. */
     virtual vfspos getpos() const = 0;
 
-    virtual size_t read(void *dst, unsigned int bytes) = 0;
-    virtual size_t write(const void *src, unsigned int bytes) = 0;
+    virtual size_t read(void *dst, size_t bytes) = 0;
+    virtual size_t write(const void *src, size_t bytes) = 0;
 
     /** Return file size. If NA, return npos. If size is not yet known,
         open() and close() may be called (with default args) to find out the size.
@@ -69,8 +69,8 @@ public:
     virtual bool seek(vfspos pos, int whence);
     virtual bool flush();
     virtual vfspos getpos() const;
-    virtual size_t read(void *dst, unsigned int bytes);
-    virtual size_t write(const void *src, unsigned int bytes);
+    virtual size_t read(void *dst, size_t bytes);
+    virtual size_t write(const void *src, size_t bytes);
     virtual vfspos size();
     virtual const char *getType() const { return "DiskFile"; }
 
@@ -103,8 +103,8 @@ public:
     virtual bool seek(vfspos pos, int whence);
     virtual bool flush() { return true; }
     virtual vfspos getpos() const { return _pos; }
-    virtual size_t read(void *dst, unsigned int bytes);
-    virtual size_t write(const void *src, unsigned int bytes);
+    virtual size_t read(void *dst, size_t bytes);
+    virtual size_t write(const void *src, size_t bytes);
     virtual vfspos size() { return _size; }
     virtual const char *getType() const { return "MemFile"; }
 

@@ -16,6 +16,14 @@ class InternalDir : public DirBase
     friend class VFSHelper;
 
 public:
+
+    enum MountType
+    {
+        MOUNT_IMPLIED, // mount in subdir by the other two
+        MOUNT_MOUNTED, // mounted by user
+        MOUNT_FIXED, // can't be changed
+    };
+
     // virtual overrides (final)
     const char *getType() const { return "InternalDir"; }
     void forEachFile(FileEnumCallback f, void *user = NULL, bool safe = false);
@@ -23,10 +31,19 @@ public:
     File *getFileByName(const char *fn) const;
 
 protected:
+
+    struct MountEntry
+    {
+        MountEntry() {}
+        MountEntry(DirBase *d, MountType t) : dir(d), type(t) {}
+        CountedPtr<DirBase> dir;
+        MountType type;
+    };
+
     // virtual overrides(final)
     InternalDir *createNew(const char *dir) const;
 
-    typedef std::vector<CountedPtr<DirBase> > MountedDirs;
+    typedef std::vector<MountEntry> MountedDirs;
     MountedDirs _mountedDirs;
 
 private:
@@ -36,9 +53,22 @@ private:
     bool merge(Dir *dir, bool overwrite);
 
     void _clearDirs();
-    void _clearAllMountsRec();
-    void _remount();
-    void _addMountDir(DirBase *d);
+    void _clearMountsRec(MountType level); // clear all mounts weaker or equal to level
+    void _addMountDir(DirBase *d, MountType ty);
+
+    static void s_addSubMount(DirBase *d, void *user);
+
+    class MountCheck
+    {
+    public:
+        MountCheck(MountType level) : _level(level) {}
+        inline bool operator() (MountEntry& e) const
+        {
+            return e.type <= _level;
+        }
+    private:
+        MountType _level;
+    };
 };
 
 

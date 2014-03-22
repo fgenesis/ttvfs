@@ -111,8 +111,8 @@ File *DiskLoader::Load(const char *fn, const char * /*ignored*/)
 
 Dir *DiskLoader::LoadDir(const char *fn, const char * /*ignored*/)
 {
-    if(IsDirectory(fn))
-        return new DiskDir(fn); // must contain full file name
+    if(!IsDirectory(fn))
+        return NULL;
 
     DiskDir *ret = NULL;
 
@@ -122,12 +122,12 @@ Dir *DiskLoader::LoadDir(const char *fn, const char * /*ignored*/)
     memcpy(t, fn, s+1); // copy terminating '\0' as well
     if(findFileHarder(&t[0])) // fixes the filename on the way
     {
-        ret = new DiskDir(&t[0]);
+        fn = &t[0];
     }
     VFS_STACK_FREE(t);
 #endif
 
-    return ret;
+    return safecastNonNull<DiskDir*>(getRoot()->getDir(fn, true));
 }
 
 VFS_NAMESPACE_END

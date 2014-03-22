@@ -157,10 +157,10 @@ DirBase *DirBase::getDir(const char *subdir, bool forceCreate /* = false */)
     return ret;
 }
 
-static void _iterDirs(const Dirs &m, DirEnumCallback f, void *user)
+static void _iterDirs(Dirs &m, DirEnumCallback f, void *user)
 {
-    for(Dirs::const_iterator it = m.begin(); it != m.end(); ++it)
-        f(const_cast<DirBase*>(it->second.content()), user);
+    for(Dirs::iterator it = m.begin(); it != m.end(); ++it)
+        f(it->second.content(), user);
 }
 
 void DirBase::forEachDir(DirEnumCallback f, void *user /* = NULL */, bool safe /* = false */)

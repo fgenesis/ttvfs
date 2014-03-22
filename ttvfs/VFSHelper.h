@@ -116,11 +116,13 @@ protected:
         Overload to do additional cleanup if required. Invoked by Clear() and Prepare(true). */
     virtual void _cleanup(void);
 
+    InternalDir *_GetDirByLoader(VFSLoader *ldr, const char *fn, const char *unmangled);
+
     struct VDirEntry
     {
-        VDirEntry() : vdir(NULL) {}
-        VDirEntry(DirBase *v, const std::string& mp) : vdir(v), mountPoint(mp) {}
-        CountedPtr<DirBase> vdir;
+        VDirEntry() : dir(NULL) {}
+        VDirEntry(DirBase *d, const std::string& mp) : dir(d), mountPoint(mp) {}
+        CountedPtr<DirBase> dir;
         std::string mountPoint;
     };
 
@@ -132,6 +134,7 @@ protected:
 
     void _StoreMountPoint(const VDirEntry& ve);
     bool _RemoveMountPoint(const VDirEntry& ve);
+    void _RebuildTree();
 
     // If files are not in the tree, maybe one of these is able to find it.
     LoaderArray loaders;

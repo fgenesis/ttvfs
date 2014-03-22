@@ -103,6 +103,9 @@ public:
     const T* operator->() const  { return _p; }
           T* operator->()        { return _p; }
 
+    const T* operator*() const  { return *_p; }
+          T* operator*()        { return *_p; }
+
     bool operator!() const { return !_p; }
 
     // if you use these, make sure you also keep a counted reference to the object!
