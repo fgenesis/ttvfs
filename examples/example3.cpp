@@ -23,18 +23,17 @@ public:
 VFSTextStdStreamIn::VFSTextStdStreamIn(const char *fn, bool dropOther /* = true */)
 : std::istringstream()
 {
-    ttvfs::VFSFile *vf = vfs.GetFile(fn);
-    if(vf)
+    // Note that this is very sloppy. Ideally, only read until a newline, and keep the file open.
+    // This slurps the whole file into memory and should not be used for big files.
+    ttvfs::File *vf = vfs.GetFile(fn);
+    if(vf && vf->open("r")) // force text mode reading
     {
-        vf->open("r"); // force text mode reading
-        str((char*)vf->getBuf()); // stringstream will always make a copy of the input buffer
+        size_t sz = (size_t)vf->size();
+        std::string s;
+        s.resize(sz);
+        vf->read(&s[0], sz);
+        str(s);
         vf->close();
-
-        // we may want to keep the memory if it is used elsewhere later,
-        // to avoid re-reading from disk or other sources.
-        // here, this is not required, so we delete it.
-        if(dropOther) 
-            vf->dropBuf(true);
     }
     else
     {
@@ -77,8 +76,7 @@ int main(int argc, char *argv[])
     ReadAndPrint<std::ifstream>("mydata.txt");
 
     // the obligatory VFS initialization
-    vfs.LoadFileSysRoot(true);
-    vfs.Prepare();
+    vfs.AddLoader(new ttvfs::DiskLoader);
 
     // second read, using the VFS. Same code.
     // This is especially powerful if the files you are reading lie inside a container file, for example.

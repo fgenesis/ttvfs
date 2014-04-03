@@ -4,7 +4,7 @@
 #include <ttvfs.h>
 #include <iostream>
 
-static void FileCallback(ttvfs::VFSFile *vf, void * /*unused*/)
+static void FileCallback(ttvfs::File *vf, void * /*unused*/)
 {
     std::cout << vf->name() << " --> " << vf->fullname() << std::endl;
 }
@@ -14,37 +14,26 @@ int main(int argc, char *argv[])
 {
     ttvfs::VFSHelper vfs;
 
-    vfs.LoadFileSysRoot(false);
-    vfs.Prepare();
+    vfs.AddLoader(new ttvfs::DiskLoader);
 
-    std::cout << "Possible app dir: " << ttvfs::GetAppDir("example6") << std::endl;
+    // System-dependent suggested per-user program directory. On linux, this is the homedir,
+    // on windows, this is most likely somewhere in %APPDATA%.
+    std::cout << "Possible app dir: " << ttvfs::GetAppDir("example6") << std::endl << std::endl;
+
 
     // Make the user's home directory accessible as "./user"
-    vfs.MountExternalPath(ttvfs::GetUserDir().c_str(), "user");
+    vfs.Mount(ttvfs::GetUserDir().c_str(), "user");
 
     // Should be there now
-    ttvfs::VFSDir *vd = vfs.GetDir("user");
-    if(!vd)
+    ttvfs::DirView view;
+    if(!vfs.FillDirView("user", view))
     {
         std::cout << "ERROR" << std::endl;
         return 1;
     }
 
-    // Where is it?
-    // Because vd->fullname() returns "user" only, we have to find out the original mount point
-    // and use that instead -- MountExternalPath() "hides" the original directory and just merges its contents!
-    ttvfs::VFSDir *mp = vfs.GetMountPoint("user");
-    if(mp)
-        std::cout << "User directory: " << mp->fullname() << std::endl;
-    else
-        std::cout << "ERROR: Mount point not found (internal error!)" << std::endl;
-
     // List all files
-    vd->forEachFile(FileCallback);
-
-    // Some more testing.
-    vfs.debugDumpTree(std::cout);
-
+    view.forEachFile(FileCallback);
 
     return 0;
 }
