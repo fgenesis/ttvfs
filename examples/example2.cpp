@@ -9,11 +9,11 @@ ttvfs::VFSHelper vfs;
 static void PrintFile(const char *fn)
 {
     ttvfs::File *vf = vfs.GetFile(fn);
-    std::cout << "Open file " << fn << ": ";
     if(vf)
     {
-        vf->open("r"); // force text mode
         size_t sz = (size_t)vf->size();
+        std::cout << "Open file " << fn << " [" << vf->fullname() << "]: Size = " << sz << " bytes" << std::endl;
+        vf->open("r"); // force text mode
         std::string s;
         s.resize(sz);
         size_t bytes = vf->read(&s[0], sz); // read all
@@ -23,8 +23,9 @@ static void PrintFile(const char *fn)
     }
     else
     {
-        std::cout << "FILE OPEN ERROR!" << std::endl;
+        std::cout << "FILE OPEN ERROR: " << fn << std::endl;
     }
+    std::cout << std::endl;
 }
 
 static void FileCallback(ttvfs::File *vf, void *user)
@@ -59,8 +60,6 @@ int main(int argc, char *argv[])
 
     PrintFile("myfile.txt"); // Access the file as before -> it got replaced.
 
-    return 0;//'#####################
-
     std::cout << "-- Before mounting 'more/even_more/deep' -> 'far' (should error)" << std::endl;
 
     PrintFile("far/file.txt"); // not found!
@@ -73,20 +72,18 @@ int main(int argc, char *argv[])
     PrintFile("far/file.txt"); // ... and access this file normally
 
     // mount an external directory (this could be ~/.MyApp or anything)
-    vfs.MountExternalPath("../ttvfs", "ext");
+    vfs.Mount("../ttvfs", "ext");
 
-    ttvfs::DirBase *ext = vfs.GetDir("ext");
-    if(ext)
+    ttvfs::DirView view;
+    if(vfs.FillDirView("ext", view))
     {
-        //VFS_GUARD(ext); // in case this would be called from multiple threads, lock this directory.
-
         std::cout << "Listing files in 'ext' subdir ..." << std::endl;
 
         unsigned int c = 0;
-        ext->forEachFile(FileCallback, &c);
+        view.forEachFile(FileCallback, &c);
 
         std::cout << c << " files in total!" << std::endl;
     }
-    
+
     return 0;
 }

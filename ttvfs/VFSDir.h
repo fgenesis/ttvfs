@@ -57,6 +57,7 @@ class Dir;
 class DirBase;
 class DirView;
 class File;
+class VFSLoader;
 
 typedef void (*FileEnumCallback)(File *vf, void *user);
 typedef void (*DirEnumCallback)(DirBase *vd, void *user);
@@ -86,8 +87,8 @@ public:
 
     /** Returns a file from this dir's file map.
     Expects the actual file name without path - does NOT descend. */
-    virtual File *getFileByName(const char *fn) const = 0;
-    DirBase *getDirByName(const char *fn) const; // intentionally NOT virtual
+    virtual File *getFileByName(const char *fn) = 0;
+    virtual DirBase *getDirByName(const char *fn);
 
     /** Iterate over all files or directories, calling a callback function,
     optionally with additional userdata. If safe is true, iterate over a copy.
@@ -112,7 +113,7 @@ class Dir : public DirBase
 {
 public:
 
-    Dir(const char *fullpath);
+    Dir(const char *fullpath, VFSLoader *ldr);
     virtual ~Dir();
 
     /** Adds a file directly to this directory, allows any name.
@@ -132,18 +133,23 @@ public:
     virtual void clearGarbage();
 
     bool _addToView(char *path, DirView& view);
+    DirBase *getDirByName(const char *dn);
 
 protected:
 
-    File *Dir::getFileByName(const char *fn) const;
+    File *Dir::getFileByName(const char *fn);
+    inline VFSLoader *getLoader() const { return _loader; }
 
     Files _files;
+
+private:
+    VFSLoader *_loader;
 };
 
 class DiskDir : public Dir
 {
 public:
-    DiskDir(const char *dir);
+    DiskDir(const char *path, VFSLoader *ldr);
     virtual ~DiskDir() {};
     virtual void load();
     virtual DiskDir *createNew(const char *dir) const;

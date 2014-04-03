@@ -8,6 +8,7 @@
 #include "VFSFile.h"
 #include "VFSDir.h"
 #include "VFSDirView.h"
+#include "VFSLoader.h"
 
 VFS_NAMESPACE_START
 
@@ -175,7 +176,7 @@ void DirBase::forEachDir(DirEnumCallback f, void *user /* = NULL */, bool safe /
         _iterDirs(_subdirs, f, user);
 }
 
-DirBase *DirBase::getDirByName(const char *dn) const
+DirBase *DirBase::getDirByName(const char *dn)
 {
     Dirs::const_iterator it = _subdirs.find(dn);
     return it != _subdirs.end() ? it->second : NULL;
@@ -189,8 +190,8 @@ void DirBase::clearGarbage()
 
 
 
-Dir::Dir(const char *fullpath)
-: DirBase(fullpath)
+Dir::Dir(const char *fullpath, VFSLoader *ldr)
+: DirBase(fullpath), _loader(ldr)
 {
 }
 
@@ -198,10 +199,21 @@ Dir::~Dir()
 {
 }
 
-File *Dir::getFileByName(const char *fn) const
+File *Dir::getFileByName(const char *fn)
 {
-    Files::const_iterator it = _files.find(fn);
-    return it == _files.end() ? NULL : it->second;
+    Files::iterator it = _files.find(fn);
+    if(it != _files.end())
+        return it->second;
+
+    // Lazy-load file if it's not in the tree yet
+    // TODO: get rid of alloc
+    std::string fn2 = fullname();
+    fn2 += '/';
+    fn2 += GetBaseNameFromPath(fn);
+    File *f = _loader->Load(fn2.c_str(), fn2.c_str());
+    if(f)
+        _files[f->name()] = f;
+    return f;
 }
 
 static void _iterFiles(Files &m, FileEnumCallback f, void *user)
@@ -283,18 +295,36 @@ bool Dir::_addToView(char *path, DirView& view)
     return false;
 }
 
+DirBase *Dir::getDirByName(const char *dn)
+{
+    DirBase *sub;
+    if((sub = DirBase::getDirByName(dn)))
+        return sub;
+
+
+    // Lazy-load file if it's not in the tree yet
+    // TODO: get rid of alloc
+    std::string fn2 = fullname();
+    fn2 += '/';
+    fn2 += dn;
+    sub = _loader->LoadDir(fn2.c_str(), fn2.c_str());
+    if(sub)
+        _subdirs[sub->name()] = sub;
+    return sub;
+}
+
 
 
 // ----- DiskDir start here -----
 
 
-DiskDir::DiskDir(const char *dir) : Dir(dir)
+DiskDir::DiskDir(const char *path, VFSLoader *ldr) : Dir(path, ldr)
 {
 }
 
 DiskDir *DiskDir::createNew(const char *dir) const
 {
-    return new DiskDir(dir);
+    return new DiskDir(dir, getLoader());
 }
 
 void DiskDir::load()

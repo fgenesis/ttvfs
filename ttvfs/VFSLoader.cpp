@@ -87,7 +87,7 @@ static bool findFileHarder(char *fn)
 
 DiskLoader::DiskLoader()
 {
-    root = new DiskDir("");
+    root = new DiskDir("", this);
 }
 
 File *DiskLoader::Load(const char *fn, const char * /*ignored*/)

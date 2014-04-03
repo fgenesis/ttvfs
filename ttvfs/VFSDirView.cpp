@@ -21,12 +21,15 @@ void DirView::init(const char *name)
 
 void DirView::add(DirBase *dir)
 {
+    for(ViewList::iterator it = _view.begin(); it != _view.end(); ++it)
+        if(it->content() == dir)
+            return;
     _view.push_back(dir);
 }
 
-File *DirView::getFileByName(const char *fn) const
+File *DirView::getFileByName(const char *fn)
 {
-    for(ViewList::const_reverse_iterator it = _view.rbegin(); it != _view.rend(); ++it)
+    for(ViewList::reverse_iterator it = _view.rbegin(); it != _view.rend(); ++it)
         if(File *f = (*it)->getFileByName(fn))
             return f;
     return NULL;

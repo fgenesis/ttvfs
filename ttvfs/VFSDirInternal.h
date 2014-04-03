@@ -24,7 +24,7 @@ public:
     const char *getType() const { return "InternalDir"; }
     void forEachFile(FileEnumCallback f, void *user = NULL, bool safe = false);
     void forEachDir(DirEnumCallback f, void *user = NULL, bool safe = false);
-    File *getFileByName(const char *fn) const;
+    File *getFileByName(const char *fn);
 
 protected:
 
@@ -44,8 +44,6 @@ private:
     void _clearMounts();
     void _addMountDir(CountedPtr<DirBase> d);
     void _removeMountDir(DirBase *d);
-
-    bool s_fillView(DirBase *cur, char *path, DirView& view) const;
 
 };
 

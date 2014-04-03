@@ -17,7 +17,7 @@ public:
     void init(const char *);
     void add(DirBase *);
 
-    virtual File *getFileByName(const char *fn) const;
+    virtual File *getFileByName(const char *fn);
     virtual void forEachDir(DirEnumCallback f, void *user = NULL, bool safe = false);
     virtual void forEachFile(FileEnumCallback f, void *user = NULL, bool safe = false);
 

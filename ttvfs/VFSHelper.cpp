@@ -65,7 +65,7 @@ void VFSHelper::Clear(void)
 
 bool VFSHelper::Mount(const char *src, const char *dest)
 {
-    return AddVFSDir(GetDir(src, false), dest);
+    return AddVFSDir(GetDir(src, true), dest);
 }
 
 bool VFSHelper::AddVFSDir(DirBase *dir, const char *subdir /* = NULL */)
@@ -90,12 +90,6 @@ bool VFSHelper::Unmount(const char *src, const char *dest)
 
     vddest->_removeMountDir(vdsrc); // FIXME: verify this works
     return true;
-}
-
-bool VFSHelper::MountExternalPath(const char *path, const char *where /* = "" */)
-{
-    CountedPtr<DiskDir> vfs = new DiskDir(path);
-    return AddVFSDir(vfs.content(), where);
 }
 
 void VFSHelper::AddLoader(VFSLoader *ldr)
@@ -206,7 +200,7 @@ DirBase *VFSHelper::GetDirRoot(void)
     return merged;
 }
 
-bool VFSHelper::FillView(const char *path, DirView& view)
+bool VFSHelper::FillDirView(const char *path, DirView& view)
 {
     return merged->fillView(path, view);
 }

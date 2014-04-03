@@ -48,17 +48,6 @@ public:
         which is a heavy operation compared to Mount(). Be warned. */
     bool Unmount(const char *src, const char *dest);
 
-    /** Merges a path into the tree. Requires a previous call to Prepare().
-        By default the directory is added into the root directory of the merged tree.
-        Pass NULL to add the directory to its original location,
-        or any other path to add it to that explicit location.
-        If loadRec is true, load all subdirs recursively.
-        It is advised not to use this to re-add parts already in the tree; use Mount() instead.
-        Rule of thumb: If you called LoadFileSysRoot(), do not use this for subdirs.
-        Note: Directories mounted with this will return `where` as their full path if it was set.
-              Use GetMountPoint() to retrieve the underlying Dir object. */
-    bool MountExternalPath(const char *path, const char *where = "");
-
     /** Adds a Dir object into the merged tree. If subdir is NULL (the default),
         add into the subdir stored in the Dir object. The tree will be extended if target dir does not exist.
         If overwrite is true (the default), files in the tree will be replaced if already existing.
@@ -103,7 +92,7 @@ public:
     /** Returns the tree root, which is usually the working directory. */
     DirBase *GetDirRoot(void);
 
-    bool FillView(const char *path, DirView& view);
+    bool FillDirView(const char *path, DirView& view);
 
     /** Remove a file or directory from the tree */
     //bool Remove(File *vf);

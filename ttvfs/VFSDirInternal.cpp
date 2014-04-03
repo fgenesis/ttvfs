@@ -58,10 +58,10 @@ void InternalDir::_removeMountDir(DirBase *d)
         }
 }
 
-File *InternalDir::getFileByName(const char *fn) const
+File *InternalDir::getFileByName(const char *fn)
 {
     if(_mountedDirs.size())
-        for(MountedDirs::const_reverse_iterator it = _mountedDirs.rbegin(); it != _mountedDirs.rend(); ++it)
+        for(MountedDirs::reverse_iterator it = _mountedDirs.rbegin(); it != _mountedDirs.rend(); ++it)
             if(File *f = (*it)->getFileByName(fn))
                 return f;
     return NULL;
@@ -99,33 +99,11 @@ bool InternalDir::fillView(const char *path, DirView& view)
 {
     SkipSelfPath(path);
     view.init(path);
-    char *pathcopy = (char*)VFS_STACK_ALLOC(strlen(path) + 1);
-    bool added = s_fillView(this, pathcopy, view);
+    size_t len = strlen(path) + 1;
+    char *pathcopy = (char*)VFS_STACK_ALLOC(len);
+    memcpy(pathcopy, path, len);
+    bool added = _addToView(pathcopy, view);
     VFS_STACK_FREE(pathcopy);
-    return added;
-}
-
-// assumes that path is writable
-bool InternalDir::s_fillView(DirBase *cur, char *path, DirView& view) const
-{
-    char *slashpos = (char *)strchr(path, '/');
-    bool added = false;
-
-    if(slashpos)
-    {
-        char *subpath = slashpos+1;
-        SkipSelfPath(subpath);
-
-        *slashpos = 0;
-        cur->_addToView(subpath, view);
-        *slashpos = '/';
-    }
-    else
-    {
-        char nul = 0;
-        cur->_addToView(&nul, view);
-    }
-
     return added;
 }
 
@@ -133,22 +111,32 @@ bool InternalDir::_addToView(char *path, DirView& view)
 {
     bool added = false;
 
-    if(*path)
+    if(!*path)
     {
-        for(MountedDirs::reverse_iterator it = _mountedDirs.rbegin(); it != _mountedDirs.rend(); ++it)
-            if(!VFS_STRICMP((*it)->name(), path))
-                added = s_fillView(it->content(), path, view) || added;
-
-        if(InternalDir *subdir = safecast<InternalDir*>(getDirByName(path)))
-            added = s_fillView(subdir, path, view) || added;
-    }
-    else
-    {
-        for(MountedDirs::reverse_iterator it = _mountedDirs.rbegin(); it != _mountedDirs.rend(); ++it)
+        for(MountedDirs::iterator it = _mountedDirs.begin(); it != _mountedDirs.end(); ++it)
         {
             added = true;
             view.add(it->content());
         }
+    }
+    else
+    {
+        SkipSelfPath(path);
+        char dummy = 0;
+        char *slashpos = strchr(path, '/');
+        char *tail = slashpos ? slashpos+1 : &dummy;
+
+        if(slashpos)
+            *slashpos = 0;
+
+        for(MountedDirs::iterator it = _mountedDirs.begin(); it != _mountedDirs.end(); ++it)
+                added = it->content()->_addToView(tail, view) || added;
+
+        if(InternalDir *subdir = safecast<InternalDir*>(getDirByName(path)))
+            added = subdir->_addToView(tail, view) || added;
+
+        if(slashpos)
+            *slashpos = '/';
     }
 
     return added;
