@@ -20,6 +20,7 @@ class InternalDir;
 class File;
 class VFSLoader;
 class VFSArchiveLoader;
+class DirView;
 
 
 /** VFSHelper - extensible class to simplify working with the VFS tree */
@@ -102,6 +103,8 @@ public:
     /** Returns the tree root, which is usually the working directory. */
     DirBase *GetDirRoot(void);
 
+    bool FillView(const char *path, DirView& view);
+
     /** Remove a file or directory from the tree */
     //bool Remove(File *vf);
     //bool Remove(Dir *dir);
@@ -112,29 +115,11 @@ public:
 
 protected:
 
-    /** Drops the merged tree and allows fully re-creating it.
-        Overload to do additional cleanup if required. Invoked by Clear() and Prepare(true). */
-    virtual void _cleanup(void);
-
     InternalDir *_GetDirByLoader(VFSLoader *ldr, const char *fn, const char *unmangled);
 
-    struct VDirEntry
-    {
-        VDirEntry() : dir(NULL) {}
-        VDirEntry(DirBase *d, const std::string& mp) : dir(d), mountPoint(mp) {}
-        CountedPtr<DirBase> dir;
-        std::string mountPoint;
-    };
 
-
-    typedef std::list<VDirEntry> VFSMountList;
     typedef std::vector<CountedPtr<VFSLoader> > LoaderArray;
     typedef std::vector<CountedPtr<VFSArchiveLoader> > ArchiveLoaderArray;
-
-
-    void _StoreMountPoint(const VDirEntry& ve);
-    bool _RemoveMountPoint(const VDirEntry& ve);
-    void _RebuildTree();
 
     // If files are not in the tree, maybe one of these is able to find it.
     LoaderArray loaders;
@@ -142,7 +127,6 @@ protected:
     CountedPtr<InternalDir> merged; // contains the merged virtual/actual file system tree
 
 private:
-    VFSMountList vlist; // all other trees added later, together with path to mount to
     ArchiveLoaderArray archLdrs;
 };
 

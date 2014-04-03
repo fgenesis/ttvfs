@@ -9,6 +9,8 @@ set(ttvfs_SRC
     VFSDir.h
     VFSDirInternal.cpp
     VFSDirInternal.h
+    VFSDirView.cpp
+    VFSDirView.h
     VFSFile.cpp
     VFSFile.h
     VFSFileFuncs.cpp

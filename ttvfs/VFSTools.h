@@ -55,6 +55,14 @@ template <class T> void StrSplit(const std::string &src, const std::string &sep,
         container.push_back(s);
 }
 
+template <typename T> void SkipSelfPath(T *& s)
+{
+    while(s[0] == '.' && s[1] == '/')
+        s += 2;
+    if(s[0] == '.' && !s[1])
+        ++s;
+}
+
 VFS_NAMESPACE_END
 
 #endif

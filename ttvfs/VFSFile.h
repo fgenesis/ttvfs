@@ -5,7 +5,6 @@
 #define VFSFILE_H
 
 #include "VFSBase.h"
-#include <string>
 
 VFS_NAMESPACE_START
 
@@ -33,7 +32,7 @@ public:
 
     virtual bool isopen() const = 0;
     virtual bool iseof() const = 0;
-    virtual bool close() = 0;
+    virtual void close() = 0;
     virtual bool seek(vfspos pos, int whence) = 0;
 
     virtual bool flush() = 0;
@@ -65,7 +64,7 @@ public:
     virtual bool open(const char *mode = NULL);
     virtual bool isopen() const;
     virtual bool iseof() const;
-    virtual bool close();
+    virtual void close();
     virtual bool seek(vfspos pos, int whence);
     virtual bool flush();
     virtual vfspos getpos() const;
@@ -99,7 +98,7 @@ public:
     virtual bool open(const char *mode = NULL) { return true; }
     virtual bool isopen() const { return !!_buf; } // always open
     virtual bool iseof() const { return _pos >= _size; }
-    virtual bool close();
+    virtual void close();
     virtual bool seek(vfspos pos, int whence);
     virtual bool flush() { return true; }
     virtual vfspos getpos() const { return _pos; }

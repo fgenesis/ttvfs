@@ -49,14 +49,13 @@ bool DiskFile::iseof() const
     return !_fh || real_feof((FILE*)_fh);
 }
 
-bool DiskFile::close()
+void DiskFile::close()
 {
     if(_fh)
     {
         real_fclose((FILE*)_fh);
         _fh = NULL;
     }
-    return true;
 }
 
 bool DiskFile::seek(vfspos pos, int whence)
@@ -113,11 +112,10 @@ void MemFile::_clearMem()
     _pos = 0;
 }
 
-bool MemFile::close()
+void MemFile::close()
 {
     if(_delmode == ON_CLOSE)
         _clearMem();
-    return true;
 }
 
 bool MemFile::seek(vfspos pos, int whence)

@@ -56,17 +56,11 @@ VFSHelper::~VFSHelper()
 
 void VFSHelper::Clear(void)
 {
-    _cleanup();
+    merged->_clearDirs();
+    merged->_clearMounts();
 
-    vlist.clear();
     loaders.clear();
     archLdrs.clear();
-}
-
-
-void VFSHelper::_cleanup(void)
-{
-    merged->_clearDirs();
 }
 
 bool VFSHelper::Mount(const char *src, const char *dest)
@@ -81,70 +75,22 @@ bool VFSHelper::AddVFSDir(DirBase *dir, const char *subdir /* = NULL */)
     if(!subdir)
         subdir = dir->fullname();
 
-    VDirEntry ve(dir, subdir);
-    _StoreMountPoint(ve);
+    InternalDir *into = safecastNonNull<InternalDir*>(merged->getDir(subdir, true));
+    into->_addMountDir(dir);
 
     return true;
 }
 
 bool VFSHelper::Unmount(const char *src, const char *dest)
 {
-    DirBase *vd = GetDir(src, false);
-    if(!vd)
+    DirBase *vdsrc = GetDir(src, false);
+    InternalDir *vddest = safecastNonNull<InternalDir*>(GetDir(dest, false));
+    if(!vdsrc || !vddest)
         return false;
 
-    VDirEntry ve(vd, dest);
-    return _RemoveMountPoint(ve);
+    vddest->_removeMountDir(vdsrc); // FIXME: verify this works
+    return true;
 }
-
-void VFSHelper::_StoreMountPoint(const VDirEntry& ve)
-{
-    // scan through and ensure only one mount point with the same data is present.
-    // if present, remove and re-add, this ensures the mount point is at the end of the list
-    for(VFSMountList::iterator it = vlist.begin(); it != vlist.end(); )
-    {
-        const VDirEntry& oe = *it;
-        if (ve.mountPoint == oe.mountPoint
-            && (ve.dir == oe.dir || !casecmp(ve.dir->fullname(), oe.dir->fullname())) )
-        {
-            vlist.erase(it++); // do not break; just in case there are more (fixme?)
-        }
-        else
-            ++it;
-    }
-
-    vlist.push_back(ve);
-
-    _RebuildTree();
-}
-
-bool VFSHelper::_RemoveMountPoint(const VDirEntry& ve)
-{
-    for(VFSMountList::iterator it = vlist.begin(); it != vlist.end(); ++it)
-    {
-        const VDirEntry& oe = *it;
-        if(ve.mountPoint == oe.mountPoint
-            && (ve.dir == oe.dir || !casecmp(ve.dir->fullname(), oe.dir->fullname())) )
-        {
-            vlist.erase(it);
-            _RebuildTree();
-            return true;
-        }
-    }
-    return false;
-}
-
-void VFSHelper::_RebuildTree()
-{
-    merged->_clearMountsRec(InternalDir::MOUNT_MOUNTED);
-    for(VFSMountList::iterator it = vlist.begin(); it != vlist.end(); ++it)
-    {
-        VDirEntry& e = *it;
-        InternalDir *indir = safecastNonNull<InternalDir*>(GetDir(e.mountPoint.c_str(), true));
-        indir->_addMountDir(e.dir.content(), InternalDir::MOUNT_MOUNTED);
-    }
-}
-
 
 bool VFSHelper::MountExternalPath(const char *path, const char *where /* = "" */)
 {
@@ -184,7 +130,7 @@ Dir *VFSHelper::AddArchive(const char *arch, void *opaque /* = NULL */)
     return ad;
 }
 
-inline static File *VFSHelper_GetFileByLoader(VFSLoader *ldr, const char *fn, const char *unmangled, DirBase *root)
+inline static File *VFSHelper_GetFileByLoader(VFSLoader *ldr, const char *fn, const char *unmangled)
 {
     if(!ldr)
         return NULL;
@@ -209,7 +155,7 @@ File *VFSHelper::GetFile(const char *fn)
     // if so, add the newly created File to the tree.
     if(!vf)
         for(LoaderArray::iterator it = loaders.begin(); it != loaders.end(); ++it)
-            if((vf = VFSHelper_GetFileByLoader(*it, fn, unmangled, GetDirRoot())))
+            if((vf = VFSHelper_GetFileByLoader(*it, fn, unmangled)))
                 break;
 
     //printf("VFS: GetFile '%s' -> '%s' (%s:%p)\n", fn, vf ? vf->fullname() : "NULL", vf ? vf->getType() : "?", vf);
@@ -224,7 +170,7 @@ InternalDir *VFSHelper::_GetDirByLoader(VFSLoader *ldr, const char *fn, const ch
     if(realdir)
     {
         ret = safecastNonNull<InternalDir*>(merged->getDir(fn, true));
-        ret->_addMountDir(realdir, InternalDir::MOUNT_FIXED);
+        ret->_addMountDir(realdir);
     }
     return ret;
 }
@@ -258,6 +204,11 @@ DirBase *VFSHelper::GetDir(const char* dn, bool create /* = false */)
 DirBase *VFSHelper::GetDirRoot(void)
 {
     return merged;
+}
+
+bool VFSHelper::FillView(const char *path, DirView& view)
+{
+    return merged->fillView(path, view);
 }
 
 

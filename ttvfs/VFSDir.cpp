@@ -7,6 +7,7 @@
 #include "VFSTools.h"
 #include "VFSFile.h"
 #include "VFSDir.h"
+#include "VFSDirView.h"
 
 VFS_NAMESPACE_START
 
@@ -18,7 +19,6 @@ DirBase::DirBase(const char *fullpath)
 DirBase::~DirBase()
 {
 }
-
 
 File *DirBase::getFile(const char *fn)
 {
@@ -77,7 +77,8 @@ File *DirBase::getFile(const char *fn)
 
 DirBase *DirBase::getDir(const char *subdir, bool forceCreate /* = false */)
 {
-    if(!subdir[0] || (subdir[0] == '.' && (!subdir[1] || subdir[1] == '/'))) // empty string or "." or "./" ? use this.
+    SkipSelfPath(subdir);
+    if(!subdir[0])
         return this;
 
     DirBase *ret = NULL;
@@ -174,6 +175,18 @@ void DirBase::forEachDir(DirEnumCallback f, void *user /* = NULL */, bool safe /
         _iterDirs(_subdirs, f, user);
 }
 
+DirBase *DirBase::getDirByName(const char *dn) const
+{
+    Dirs::const_iterator it = _subdirs.find(dn);
+    return it != _subdirs.end() ? it->second : NULL;
+}
+
+void DirBase::clearGarbage()
+{
+    for(Dirs::iterator it = _subdirs.begin(); it != _subdirs.end(); ++it)
+        it->second->clearGarbage();
+}
+
 
 
 Dir::Dir(const char *fullpath)
@@ -191,10 +204,10 @@ File *Dir::getFileByName(const char *fn) const
     return it == _files.end() ? NULL : it->second;
 }
 
-static void _iterFiles(const Files &m, FileEnumCallback f, void *user)
+static void _iterFiles(Files &m, FileEnumCallback f, void *user)
 {
-    for(Files::const_iterator it = m.begin(); it != m.end(); ++it)
-        f(const_cast<File*>(it->second.content()), user);
+    for(Files::iterator it = m.begin(); it != m.end(); ++it)
+        f(it->second.content(), user);
 }
 
 void Dir::forEachFile(FileEnumCallback f, void *user /* = NULL */, bool safe /* = false */)
@@ -251,6 +264,23 @@ bool Dir::addRecursive(File *f)
         vdir = this;
 
     return vdir->add(f);
+}
+
+void Dir::clearGarbage()
+{
+    DirBase::clearGarbage();
+    for(Files::iterator it = _files.begin(); it != _files.end(); ++it)
+        it->second->clearGarbage();
+}
+
+bool Dir::_addToView(char *path, DirView& view)
+{
+    if(Dir *dir = safecast<Dir*>(getDir(path)))
+    {
+        view.add(dir);
+        return true;
+    }
+    return false;
 }
 
 

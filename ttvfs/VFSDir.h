@@ -55,6 +55,7 @@ inline int casecmp(const char *a, const char *b)
 
 class Dir;
 class DirBase;
+class DirView;
 class File;
 
 typedef void (*FileEnumCallback)(File *vf, void *user);
@@ -83,32 +84,26 @@ public:
     subdir. Otherwise return NULL if not found. */
     DirBase *getDir(const char *subdir, bool forceCreate = false);
 
-    /** Can be overloaded if necessary. Called by VFSHelper::ClearGarbage() */
-    virtual void clearGarbage() {}
-
-    /** Can be overloaded to close resources this dir keeps open */
-    virtual bool close() { return true; }
-
-    /** Enumerate directory with given path. Clears previously loaded entries. */
-    virtual void load() = 0;
-
     /** Returns a file from this dir's file map.
     Expects the actual file name without path - does NOT descend. */
     virtual File *getFileByName(const char *fn) const = 0;
+    DirBase *getDirByName(const char *fn) const; // intentionally NOT virtual
 
     /** Iterate over all files or directories, calling a callback function,
     optionally with additional userdata. If safe is true, iterate over a copy.
     This is useful if the callback function modifies the tree, e.g.
     adds or removes files. */
-    void forEachDir(DirEnumCallback f, void *user = NULL, bool safe = false); // intentionally non-virtual
+    virtual void forEachDir(DirEnumCallback f, void *user = NULL, bool safe = false);
     virtual void forEachFile(FileEnumCallback f, void *user = NULL, bool safe = false) = 0;
 
+    virtual void clearGarbage();
+
+    virtual bool _addToView(char *path, DirView& view) = 0;
 
 protected:
 
     /** Creates a new dir of the same type to be used as child of this. */
     virtual DirBase *createNew(const char *dir) const = 0;
-
 
     Dirs _subdirs;
 };
@@ -129,7 +124,14 @@ public:
         Not-existing subdirs are created on the way. */
     bool addRecursive(File *f);
 
+    /** Enumerate directory with given path. Clears previously loaded entries. */
+    virtual void load() = 0;
+
     void forEachFile(FileEnumCallback f, void *user = NULL, bool safe = false);
+
+    virtual void clearGarbage();
+
+    bool _addToView(char *path, DirView& view);
 
 protected:
 

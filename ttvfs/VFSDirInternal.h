@@ -8,6 +8,7 @@ VFS_NAMESPACE_START
 
 
 class VFSHelper;
+class DirView;
 
 // Internal class, not to be used outside
 
@@ -17,58 +18,35 @@ class InternalDir : public DirBase
 
 public:
 
-    enum MountType
-    {
-        MOUNT_IMPLIED, // mount in subdir by the other two
-        MOUNT_MOUNTED, // mounted by user
-        MOUNT_FIXED, // can't be changed
-    };
+    bool fillView(const char *path, DirView& view);
 
     // virtual overrides (final)
     const char *getType() const { return "InternalDir"; }
     void forEachFile(FileEnumCallback f, void *user = NULL, bool safe = false);
-    void load();
+    void forEachDir(DirEnumCallback f, void *user = NULL, bool safe = false);
     File *getFileByName(const char *fn) const;
 
 protected:
 
-    struct MountEntry
-    {
-        MountEntry() {}
-        MountEntry(DirBase *d, MountType t) : dir(d), type(t) {}
-        CountedPtr<DirBase> dir;
-        MountType type;
-    };
-
     // virtual overrides(final)
     InternalDir *createNew(const char *dir) const;
-
-    typedef std::vector<MountEntry> MountedDirs;
-    MountedDirs _mountedDirs;
+    bool _addToView(char *path, DirView& view);
 
 private:
+
     InternalDir(const char *);
     virtual ~InternalDir();
-    bool insert(Dir *subdir, bool overwrite);
-    bool merge(Dir *dir, bool overwrite);
+
+    typedef std::vector<CountedPtr<DirBase> > MountedDirs;
+    MountedDirs _mountedDirs;
 
     void _clearDirs();
-    void _clearMountsRec(MountType level); // clear all mounts weaker or equal to level
-    void _addMountDir(DirBase *d, MountType ty);
+    void _clearMounts();
+    void _addMountDir(CountedPtr<DirBase> d);
+    void _removeMountDir(DirBase *d);
 
-    static void s_addSubMount(DirBase *d, void *user);
+    bool s_fillView(DirBase *cur, char *path, DirView& view) const;
 
-    class MountCheck
-    {
-    public:
-        MountCheck(MountType level) : _level(level) {}
-        inline bool operator() (MountEntry& e) const
-        {
-            return e.type <= _level;
-        }
-    private:
-        MountType _level;
-    };
 };
 
 

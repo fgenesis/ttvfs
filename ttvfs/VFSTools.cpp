@@ -399,6 +399,7 @@ void StripLastPath(std::string& s)
     s.resize(pos+1);
 }
 
+
 // from http://board.byuu.org/viewtopic.php?f=10&t=1089&start=15
 bool WildcardMatch(const char *str, const char *pattern)
 {

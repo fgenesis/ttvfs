@@ -35,7 +35,10 @@ public:
     virtual const char *getType() const = 0;
 
     /** Can be overloaded to close resources this object keeps open */
-    virtual bool close() { return true; }
+    virtual void close() {}
+
+    /** Can be overloaded if necessary. Called by VFSHelper::ClearGarbage() */
+    virtual void clearGarbage() {}
 
     /** Returns an object this object depends on. (used internally, by extensions) */
     inline VFSBase *getOrigin() const { return _origin; }
