@@ -34,14 +34,13 @@ public:
         Drops all archives, loaders, archive loaders, mount points, internal trees, ...*/
     virtual void Clear();
 
-    /** Do cleanups from time to time. In base Root, this is a no-op.
+    /** Do cleanups from time to time. For internal classes, this is a no-op.
         Extensions may wish to override this method do do cleanup jobs. */
     virtual void ClearGarbage();
 
     /** Mount a directory in the tree to a different location. Requires a previous call to Prepare().
-        This can be imagined like a symlink pointing to a different location.
-        Be careful not to create circles, this might technically work,
-        but confuses the reference counting, causing memory leaks. */
+        This can be imagined like the contents of a directory appearing in a different location.
+        Be careful not to create circles! */
     bool Mount(const char *src, const char *dest);
 
     /** Drops a directory from the tree. Internally, this calls Reload(false), 
@@ -50,48 +49,39 @@ public:
 
     /** Adds a Dir object into the merged tree. If subdir is NULL (the default),
         add into the subdir stored in the Dir object. The tree will be extended if target dir does not exist.
-        If overwrite is true (the default), files in the tree will be replaced if already existing.
-        Requires a previous call to Prepare().
+        Files in the tree will be replaced if already existing.
         Like with Mount(); be careful not to create cycles. */
     bool AddVFSDir(DirBase *dir, const char *subdir = NULL);
 
-    /** Add the contents of an archive file to the tree. By default, the archive can be addressed
-        like a folder, e.g. "path/to/example.zip/file.txt".
-        Set asSubdir to false to "unpack" the contents of the archive to the containing folder.
-        Optionally, the target subdir to mount into can be specified. (See AddVFSDir().)
+    /** Add an archive file to the tree, which can then be addressed like a folder,
+        e.g. "path/to/example.zip/file.txt".
         Returns a pointer to the actual Dir object that represents the added archive, or NULL if failed.
         The opaque pointer is passed directly to each loader and can contain additional parameters,
         such as a password to open the file.
-        Read the comments in VFSArchiveLoader.h for an explanation how it works. If you have no idea, leave it NULL,
-        because it can easily cause a crash if not used carefully. */
+        Read the comments in VFSArchiveLoader.h for an explanation how it works.
+        If you have no idea, leave it NULL, because it can easily cause a crash if not used carefully. */
     Dir *AddArchive(const char *arch, void *opaque = NULL);
 
     /** Add a loader that can look for files on demand.
-        It is possible (but not a good idea) to add a loader multiple times. */
+        Do not add more then once instance of a loader type. */
     void AddLoader(VFSLoader *ldr, const char *path = NULL);
 
     /** Add an archive loader that can open archives of various types.
         Whenever an archive file is requested to be opened by AddArchive(),
         it is sent through each registered loader until one of them can recognize
-        the format and open it. An archive loader stays once registered. */
+        the format and open it. */
     void AddArchiveLoader(VFSArchiveLoader *ldr);
     
-    /** Get a file from the merged tree. Requires a previous call to Prepare().
-        Asks loaders if the file is not in the tree. If found by a loader, the file will be added to the tree.
-        The returned pointer is reference counted. In case the file pointer is stored elsewhere,
-        do ptr->ref++, and later ptr->ref--. This is to prevent the VFS tree from deleting the file when cleaning up.
-        Not necessary if the pointer is just retrieved and used, or temp. stored while the VFS tree is not modified. */
+    /** Get a file from the merged tree. Asks loaders if the file is not in the tree.
+        If found by a loader, the file will be added to the tree. */
     File *GetFile(const char *fn);
 
-    /** Get a directory from the merged tree. If create is true and the directory does not exist,
-        build the tree structure and return the newly created dir. NULL otherwise.
-        Requires a previous call to Prepare().
-        Reference counted, same as GetFile(), look there for more info. */
-    DirBase *GetDir(const char* dn, bool create = false);
-
-    /** Returns the tree root, which is usually the working directory. */
-    DirBase *GetDirRoot();
-
+    /** Fills a DirView object with a list of directories that match the specified path.
+        This is the preferred way to enumerate directories, as it respects and collects
+        mount points during traversal. The DirView instance can be re-used until an (un-)mounting
+        operation takes place. If the content of directories changes, this is reflected in the view.
+        (Added dirs or files will appear, removed ones disappear).
+        Use DirView::forEachFile() or DirView::forEachDir() to iterate. */
     bool FillDirView(const char *path, DirView& view);
 
     /** Remove a file or directory from the tree */
@@ -99,13 +89,24 @@ public:
     //bool Remove(Dir *dir);
     //bool Remove(const char *name); // TODO: CODE ME
 
+
+    /** Returns the tree root, which is usually the working directory.
+    Same as GetDir("").
+    You will most likely not need this function. */
+    DirBase *GetDirRoot();
+
+    /** Get a directory from the merged tree. If create is true and the directory does not exist,
+    build the tree structure and return the newly created dir. NULL otherwise.
+    You will most likely not need this function.
+    Use FillDirView() on a DirView object to iterate over directory contents. */
+    DirBase *GetDir(const char* dn, bool create = false);
+
     // DEBUG STUFF
     void debugDumpTree(std::ostream& os, Dir *start = NULL);
 
 protected:
 
     InternalDir *_GetDirByLoader(VFSLoader *ldr, const char *fn, const char *unmangled);
-
 
     typedef std::vector<CountedPtr<VFSLoader> > LoaderArray;
     typedef std::vector<CountedPtr<VFSArchiveLoader> > ArchiveLoaderArray;
@@ -115,7 +116,6 @@ protected:
 
     CountedPtr<InternalDir> merged; // contains the merged virtual/actual file system tree
 
-private:
     ArchiveLoaderArray archLdrs;
 };
 

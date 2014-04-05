@@ -3,11 +3,11 @@
 #include <cstdio>
 #include <ctime>
 
-ttvfs::VFSHelper vfs;
+ttvfs::Root vfs;
 
 static bool lookupVFS(const char *fn, unsigned int times)
 {
-    volatile ttvfs::VFSFile *vf = vfs.GetFile(fn);
+    volatile ttvfs::File *vf = vfs.GetFile(fn);
     if(!vf)
         return false;
     for(unsigned int i = 0; i < times; ++i)
@@ -18,7 +18,7 @@ static bool lookupVFS(const char *fn, unsigned int times)
 static bool openVFS(const char *fn, unsigned int times)
 {
     volatile int dummy;
-    ttvfs::VFSFile *vf = vfs.GetFile(fn);
+    ttvfs::File *vf = vfs.GetFile(fn);
     if(!vf)
         return false;
     for(unsigned int i = 0; i < times; ++i)
@@ -67,16 +67,10 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    vfs.AddLoader(new ttvfs::DiskLoader);
+
     const char *fn =  argv[1];
     const int times = 100000;
-
-    
-
-    // Load all files from all subdirs, recursively
-    vfs.LoadFileSysRoot(true);
-
-    // Make the VFS usable
-    vfs.Prepare();
 
     puts("Lookup only...");
     doRun(fn, times, lookupVFS);

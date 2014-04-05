@@ -331,6 +331,7 @@ void DiskDir::load()
 {
     _files.clear();
     _subdirs.clear();
+    // TODO: cache existing files and keep them unless they do no longer exist
 
     StringList li;
     GetFileList(fullname(), li);
