@@ -27,7 +27,7 @@ void DirView::add(DirBase *dir)
     _view.push_back(dir);
 }
 
-File *DirView::getFileByName(const char *fn)
+File *DirView::getFileByName(const char *fn, bool lazyLoad /* = true */)
 {
     for(ViewList::reverse_iterator it = _view.rbegin(); it != _view.rend(); ++it)
         if(File *f = (*it)->getFileByName(fn))

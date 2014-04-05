@@ -68,7 +68,7 @@ public:
 
     /** Add a loader that can look for files on demand.
         It is possible (but not a good idea) to add a loader multiple times. */
-    void AddLoader(VFSLoader *ldr);
+    void AddLoader(VFSLoader *ldr, const char *path = NULL);
 
     /** Add an archive loader that can open archives of various types.
         Whenever an archive file is requested to be opened by AddArchive(),

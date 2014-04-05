@@ -75,7 +75,7 @@ bool VFSHelper::AddVFSDir(DirBase *dir, const char *subdir /* = NULL */)
     if(!subdir)
         subdir = dir->fullname();
 
-    InternalDir *into = safecastNonNull<InternalDir*>(merged->getDir(subdir, true));
+    InternalDir *into = safecastNonNull<InternalDir*>(merged->getDir(subdir, true, true, false));
     into->_addMountDir(dir);
 
     return true;
@@ -92,9 +92,10 @@ bool VFSHelper::Unmount(const char *src, const char *dest)
     return true;
 }
 
-void VFSHelper::AddLoader(VFSLoader *ldr)
+void VFSHelper::AddLoader(VFSLoader *ldr, const char *path /* = NULL */)
 {
     loaders.push_back(ldr);
+    AddVFSDir(ldr->getRoot(), path);
 }
 
 void VFSHelper::AddArchiveLoader(VFSArchiveLoader *ldr)
@@ -163,7 +164,7 @@ InternalDir *VFSHelper::_GetDirByLoader(VFSLoader *ldr, const char *fn, const ch
     InternalDir *ret = NULL;
     if(realdir)
     {
-        ret = safecastNonNull<InternalDir*>(merged->getDir(fn, true));
+        ret = safecastNonNull<InternalDir*>(merged->getDir(fn, true, true, false));
         ret->_addMountDir(realdir);
     }
     return ret;

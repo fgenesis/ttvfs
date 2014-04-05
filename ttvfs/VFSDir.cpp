@@ -21,7 +21,7 @@ DirBase::~DirBase()
 {
 }
 
-File *DirBase::getFile(const char *fn)
+File *DirBase::getFile(const char *fn, bool lazyLoad /* = true */)
 {
     while(fn[0] == '.' && fn[1] == '/') // skip ./
         fn += 2;
@@ -68,15 +68,15 @@ File *DirBase::getFile(const char *fn)
             return NULL;
         // restore pointer into original string, by offset
         ptr = fn + (ptr - dup);
-        return subdir->getFileByName(ptr);
+        return subdir->getFileByName(ptr, lazyLoad);
     }
 
     // no subdir? file must be in this dir now.
-    return getFileByName(fn);
+    return getFileByName(fn, lazyLoad);
 }
 
 
-DirBase *DirBase::getDir(const char *subdir, bool forceCreate /* = false */)
+DirBase *DirBase::getDir(const char *subdir, bool forceCreate /* = false */, bool lazyLoad /* = true */, bool useSubtrees /* = true */)
 {
     SkipSelfPath(subdir);
     if(!subdir[0])
@@ -94,11 +94,11 @@ DirBase *DirBase::getDir(const char *subdir, bool forceCreate /* = false */)
         char * const t = (char*)VFS_STACK_ALLOC(copysize + 1);
         memcpy(t, subdir, copysize);
         t[copysize] = 0;
-        Dirs::iterator it = _subdirs.find(t);
-        if(it != _subdirs.end())
+        
+        if(DirBase *dir = getDirByName(t, lazyLoad, useSubtrees))
         {
             // TODO: get rid of recursion
-            ret = it->second->getDir(sub, forceCreate); // descend into subdirs
+            ret = dir->getDir(sub, forceCreate, lazyLoad); // descend into subdirs
         }
         else if(forceCreate)
         {
@@ -121,12 +121,12 @@ DirBase *DirBase::getDir(const char *subdir, bool forceCreate /* = false */)
                 ins = createNew(t);
 
             _subdirs[ins->name()] = ins;
-            ret = ins->getDir(sub, true); // create remaining structure
+            ret = ins->getDir(sub, true, lazyLoad); // create remaining structure
         }
     }
     else
     {
-        if(DirBase *dir = getDirByName(subdir))
+        if(DirBase *dir = getDirByName(subdir, lazyLoad, useSubtrees))
             ret = dir;
         else if(forceCreate)
         {
@@ -175,7 +175,7 @@ void DirBase::forEachDir(DirEnumCallback f, void *user /* = NULL */, bool safe /
         _iterDirs(_subdirs, f, user);
 }
 
-DirBase *DirBase::getDirByName(const char *dn)
+DirBase *DirBase::getDirByName(const char *dn, bool /* unused: lazyLoad = true */, bool useSubtrees /* = true */)
 {
     Dirs::const_iterator it = _subdirs.find(dn);
     return it != _subdirs.end() ? it->second : NULL;
@@ -198,20 +198,18 @@ Dir::~Dir()
 {
 }
 
-File *Dir::getFileByName(const char *fn)
+File *Dir::getFileByName(const char *fn, bool lazyLoad /* = true */)
 {
     Files::iterator it = _files.find(fn);
     if(it != _files.end())
         return it->second;
 
-    if(!_loader)
+    if(!lazyLoad || !_loader)
         return NULL;
 
     // Lazy-load file if it's not in the tree yet
     // TODO: get rid of alloc
-    std::string fn2 = fullname();
-    fn2 += '/';
-    fn2 += GetBaseNameFromPath(fn);
+    std::string fn2 = joinPath(fullname(), GetBaseNameFromPath(fn));
     File *f = _loader->Load(fn2.c_str(), fn2.c_str());
     if(f)
         _files[f->name()] = f;
@@ -302,20 +300,18 @@ bool Dir::_addToView(char *path, DirView& view)
     return false;
 }
 
-DirBase *Dir::getDirByName(const char *dn)
+DirBase *Dir::getDirByName(const char *dn, bool lazyLoad /* = true */, bool useSubtrees /* = true */)
 {
     DirBase *sub;
-    if((sub = DirBase::getDirByName(dn)))
+    if((sub = DirBase::getDirByName(dn, lazyLoad, useSubtrees)))
         return sub;
 
-    if(!_loader)
+    if(!lazyLoad || !_loader)
         return NULL;
 
     // Lazy-load file if it's not in the tree yet
     // TODO: get rid of alloc
-    std::string fn2 = fullname();
-    fn2 += '/';
-    fn2 += dn;
+    std::string fn2 = joinPath(fullname(), dn);
     sub = _loader->LoadDir(fn2.c_str(), fn2.c_str());
     if(sub)
         _subdirs[sub->name()] = sub;

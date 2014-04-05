@@ -24,8 +24,8 @@ public:
     const char *getType() const { return "InternalDir"; }
     void forEachFile(FileEnumCallback f, void *user = NULL, bool safe = false);
     void forEachDir(DirEnumCallback f, void *user = NULL, bool safe = false);
-    File *getFileByName(const char *fn);
-    DirBase *getDirByName(const char *fn);
+    File *getFileByName(const char *fn, bool lazyLoad = true);
+    DirBase *getDirByName(const char *fn, bool lazyLoad = true, bool useSubtrees = true);
 
 protected:
 

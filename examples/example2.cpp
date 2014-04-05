@@ -58,6 +58,8 @@ int main(int argc, char *argv[])
     vfs.Mount("patches", ""); // <-- this is the better way.
     // all files and subdirs that were in "patches" are now mirrored in "" as well.
 
+    PrintFile("patchfile.txt"); // access as if it was in root dir.
+
     PrintFile("myfile.txt"); // Access the file as before -> it got replaced.
 
     std::cout << "-- Before mounting 'more/even_more/deep' -> 'far' (should error)" << std::endl;
@@ -71,19 +73,20 @@ int main(int argc, char *argv[])
 
     PrintFile("far/file.txt"); // ... and access this file normally
 
-    // mount an external directory (this could be ~/.MyApp or anything)
-    vfs.Mount("../ttvfs", "ext");
 
+    // List files in working directory
     ttvfs::DirView view;
-    if(vfs.FillDirView("ext", view))
+    if(vfs.FillDirView("", view))
     {
-        std::cout << "Listing files in 'ext' subdir ..." << std::endl;
+        std::cout << "Listing files in working dir ..." << std::endl;
 
         unsigned int c = 0;
         view.forEachFile(FileCallback, &c);
 
         std::cout << c << " files in total!" << std::endl;
     }
+    else
+        std::cout << "Invalid DirView: NO FILES?!" << std::endl;
 
     return 0;
 }

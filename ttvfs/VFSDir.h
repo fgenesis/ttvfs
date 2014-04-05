@@ -78,17 +78,17 @@ public:
 
     /** Returns a file for this dir's subtree. Descends if necessary.
     Returns NULL if the file is not found. */
-    File *getFile(const char *fn);
+    File *getFile(const char *fn, bool lazyLoad = true);
 
     /** Returns a subdir, descends if necessary. If forceCreate is true,
     create directory tree if it does not exist, and return the originally requested
     subdir. Otherwise return NULL if not found. */
-    DirBase *getDir(const char *subdir, bool forceCreate = false);
+    DirBase *getDir(const char *subdir, bool forceCreate = false, bool lazyLoad = true, bool useSubtrees = true);
 
     /** Returns a file from this dir's file map.
     Expects the actual file name without path - does NOT descend. */
-    virtual File *getFileByName(const char *fn) = 0;
-    virtual DirBase *getDirByName(const char *fn);
+    virtual File *getFileByName(const char *fn, bool lazyLoad = true) = 0;
+    virtual DirBase *getDirByName(const char *fn, bool lazyLoad = true, bool useSubtrees = true);
 
     /** Iterate over all files or directories, calling a callback function,
     optionally with additional userdata. If safe is true, iterate over a copy.
@@ -133,11 +133,12 @@ public:
     virtual void clearGarbage();
 
     bool _addToView(char *path, DirView& view);
-    DirBase *getDirByName(const char *dn);
+    DirBase *getDirByName(const char *dn, bool lazyLoad = true, bool useSubtrees = true);
+    File *getFileByName(const char *fn, bool lazyLoad = true);
+
 
 protected:
 
-    File *Dir::getFileByName(const char *fn);
     inline VFSLoader *getLoader() const { return _loader; }
 
     Files _files;

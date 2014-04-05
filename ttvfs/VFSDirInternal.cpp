@@ -58,24 +58,25 @@ void InternalDir::_removeMountDir(DirBase *d)
         }
 }
 
-File *InternalDir::getFileByName(const char *fn)
+File *InternalDir::getFileByName(const char *fn, bool lazyLoad /* = true */)
 {
     if(_mountedDirs.size())
         for(MountedDirs::reverse_iterator it = _mountedDirs.rbegin(); it != _mountedDirs.rend(); ++it)
-            if(File *f = (*it)->getFileByName(fn))
+            if(File *f = (*it)->getFileByName(fn, lazyLoad))
                 return f;
     return NULL;
 }
 
-DirBase *InternalDir::getDirByName(const char *dn)
+DirBase *InternalDir::getDirByName(const char *dn, bool lazyLoad /* = true */, bool useSubtrees /* = true */)
 {
     DirBase *sub;
-    if((sub = DirBase::getDirByName(dn)))
+    if((sub = DirBase::getDirByName(dn, lazyLoad)))
         return sub;
 
-    for(MountedDirs::reverse_iterator it = _mountedDirs.rbegin(); it != _mountedDirs.rend(); ++it)
-        if((sub = (*it)->getDirByName(dn)))
-            return sub;
+    if(useSubtrees)
+        for(MountedDirs::reverse_iterator it = _mountedDirs.rbegin(); it != _mountedDirs.rend(); ++it)
+            if((sub = (*it)->getDirByName(dn, lazyLoad)))
+                return sub;
 
     return NULL;
 }
@@ -143,9 +144,10 @@ bool InternalDir::_addToView(char *path, DirView& view)
             *slashpos = 0;
 
         for(MountedDirs::iterator it = _mountedDirs.begin(); it != _mountedDirs.end(); ++it)
-                added = it->content()->_addToView(tail, view) || added;
+            if(DirBase *subdir = (*it)->getDirByName(path))
+                added = subdir->_addToView(tail, view) || added;
 
-        if(InternalDir *subdir = safecast<InternalDir*>(getDirByName(path)))
+        if(InternalDir *subdir = safecast<InternalDir*>(getDirByName(path, true, false)))
             added = subdir->_addToView(tail, view) || added;
 
         if(slashpos)

@@ -127,7 +127,7 @@ Dir *DiskLoader::LoadDir(const char *fn, const char * /*ignored*/)
     VFS_STACK_FREE(t);
 #endif
 
-    return safecastNonNull<DiskDir*>(getRoot()->getDir(fn, true));
+    return safecastNonNull<DiskDir*>(getRoot()->getDir(fn, true, false));
 }
 
 VFS_NAMESPACE_END
