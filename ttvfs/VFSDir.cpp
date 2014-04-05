@@ -258,25 +258,29 @@ bool Dir::add(File *f)
     return true;
 }
 
-bool Dir::addRecursive(File *f)
+bool Dir::addRecursive(File *f, size_t skip /* = 0 */)
 {
     if(!f)
         return false;
-
-    // figure out directory from full file name
-    Dir *vdir;
-    size_t prefixLen = f->fullnameLen() - f->nameLen();
-    if(prefixLen)
+    
+    Dir *vdir = this;
+    if(f->fullnameLen() - f->nameLen() > skip)
     {
-        char *dirname = (char*)VFS_STACK_ALLOC(prefixLen);
-        --prefixLen; // -1 to strip the trailing '/'. That's the position where to put the terminating null byte.
-        memcpy(dirname, f->fullname(), prefixLen); // copy trailing null byte
-        dirname[prefixLen] = 0;
-        vdir = safecastNonNull<Dir*>(getDir(dirname, true));
-        VFS_STACK_FREE(dirname);
+        // figure out directory from full file name
+        size_t prefixLen = f->fullnameLen() - f->nameLen() - skip;
+
+        // prefixLen == 0 is invalid, prefixLen == 1 is just a single '/', which will be stripped away below.
+        // in both cases, just use 'this'.
+        if(prefixLen > 1)
+        {
+            char *dirname = (char*)VFS_STACK_ALLOC(prefixLen);
+            --prefixLen; // -1 to strip the trailing '/'. That's the position where to put the terminating null byte.
+            memcpy(dirname, f->fullname() + skip, prefixLen); // copy trailing null byte
+            dirname[prefixLen] = 0;
+            vdir = safecastNonNull<Dir*>(getDir(dirname, true));
+            VFS_STACK_FREE(dirname);
+        }
     }
-    else
-        vdir = this;
 
     return vdir->add(f);
 }

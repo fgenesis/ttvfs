@@ -123,7 +123,7 @@ public:
 
     /** Like add(), but if the file name contains a path, descend the tree to the target dir.
         Not-existing subdirs are created on the way. */
-    bool addRecursive(File *f);
+    bool addRecursive(File *f, size_t skip = 0);
 
     /** Enumerate directory with given path. Clears previously loaded entries. */
     virtual void load() = 0;

@@ -63,6 +63,15 @@ template <typename T> void SkipSelfPath(T *& s)
         ++s;
 }
 
+inline std::string joinPath(std::string base, const char *sub)
+{
+    if(!*sub)
+        return base;
+    if(*sub != '/' && base.length() && base[base.length()-1] != '/')
+        base += '/';
+    return base + sub;
+}
+
 VFS_NAMESPACE_END
 
 #endif

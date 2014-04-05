@@ -10,17 +10,8 @@ VFS_NAMESPACE_START
 
 
 
-inline std::string _joinPath(std::string base, const char *sub)
-{
-    if(!*sub)
-        return base;
-    if(*sub != '/')
-        base += '/';
-    return base + sub;
-}
-
 ZipDir::ZipDir(ZipArchiveRef *handle, const char *subpath)
-: Dir(_joinPath(handle->fullname(), subpath).c_str(), NULL)
+: Dir(joinPath(handle->fullname(), subpath).c_str(), NULL)
 , _archiveHandle(handle)
 {
 }
@@ -48,9 +39,10 @@ DirBase *ZipDir::createNew(const char *dir) const
 
 void ZipDir::load()
 {
-    close();
+    _archiveHandle->openRead();
 
-    unsigned int files = mz_zip_reader_get_num_files(MZ);
+    const unsigned int files = mz_zip_reader_get_num_files(MZ);
+    const size_t len = fullnameLen();
 
     mz_zip_archive_file_stat fs;
     for (unsigned int i = 0; i < files; ++i)
@@ -68,7 +60,7 @@ void ZipDir::load()
             continue;
 
         ZipFile *vf = new ZipFile(fs.m_filename, _archiveHandle, (vfspos)fs.m_uncomp_size, fs.m_file_index); // TODO: stat
-        addRecursive(vf); // FIXME: correct?
+        addRecursive(vf, len); // FIXME: correct?
     }
 }
 

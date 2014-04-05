@@ -2,35 +2,36 @@
 /* ttvfs example #4 - Example #1 re-done, now reading from a zip file. */
 
 #include <cstdio>
-#include <VFS.h>
+#include <ttvfs.h>
 #include <VFSZipArchiveLoader.h>
 
 int main(int argc, char *argv[])
 {
     ttvfs::VFSHelper vfs;
 
+    vfs.AddLoader(new ttvfs::DiskLoader);
+
     // Make the VFS able to load Zip files
     vfs.AddArchiveLoader(new ttvfs::VFSZipArchiveLoader);
 
-    // Load all files from current directory, subdirs not required in this case
-    vfs.LoadFileSysRoot(false);
-
-    // Make the VFS usable
-    vfs.Prepare();
 
     // Mount an archive as a folder in the directory it resides in.
-    // (Which is the default setting, and in this case, creates a virtual folder in the root dir.)
     vfs.AddArchive("test.zip");
 
     // Access the file as usual
-    ttvfs::VFSFile *vf = vfs.GetFile("test.zip/zipped.txt");
-    if(!vf)
+    ttvfs::File *vf = vfs.GetFile("test.zip/zipped.txt");
+    if(!vf || !vf->open("r"))
     {
         puts("ERROR\n"); // failed to find file
         return 1; 
     }
 
-    puts((const char*)vf->getBuf()); // dump to console
+    char buf[513];
+    size_t bytes = vf->read(buf, 512);
+    buf[bytes] = 0;
+    puts(buf);
+
+    vf->close();
 
     return 0;
 }

@@ -9,7 +9,7 @@ VFS_NAMESPACE_START
 
 
 ZipFile::ZipFile(const char *name, ZipArchiveRef *zref, vfspos uncompSize, unsigned int fileIdx)
-: File(name)
+: File(joinPath(zref->fullname(), name).c_str())
 , _buf(NULL)
 , _pos(0)
 , _archiveHandle(zref)
@@ -130,16 +130,24 @@ bool ZipFile::unpack()
 {
     delete [] _buf;
 
+    if(!_archiveHandle->openRead())
+        return false; // can happen if the underlying zip file was deleted
+
+    // In case of text data, make sure the buffer is always terminated with '\0'.
+    // Won't hurt for binary data, so just do it in all cases.
     size_t sz = (size_t)size();
-    _buf = new char[sz + 4];
+    _buf = new char[sz + 1];
     if(!_buf)
         return false;
 
-    if(!_archiveHandle->openRead())
-        return false; // can happen if the underlying zip file was deleted
     if(!mz_zip_reader_extract_to_mem(MZ, _fileIdx, _buf, sz, 0))
+    {
+        delete [] _buf;
+        _buf = NULL;
         return false; // this should not happen
+    }
 
+    _buf[sz] = 0;
     if(_mode.find("b") == std::string::npos) // text mode?
     {
         _uncompSize = strnNLcpy(_buf, _buf);
