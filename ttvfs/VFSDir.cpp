@@ -42,7 +42,6 @@ File *DirBase::getFile(const char *fn, bool lazyLoad /* = true */)
         slashpos = dup + (slashpos - fn); // use direct offset, not to have to recount again the first time
         DirBase *subdir = this;
         const char *ptr = dup;
-        Dirs::iterator it;
 
         goto pos_known;
         do
@@ -56,11 +55,7 @@ File *DirBase::getFile(const char *fn, bool lazyLoad /* = true */)
 
         pos_known:
             *slashpos = 0;
-            it = subdir->_subdirs.find(ptr);
-            if(it != subdir->_subdirs.end())
-                subdir = it->second; // found it
-            else
-                subdir = NULL; // bail out
+            subdir = getDirByName(ptr, true, false);
         }
         while(subdir);
         VFS_STACK_FREE(dup);

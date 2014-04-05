@@ -35,5 +35,19 @@ int main(int argc, char *argv[])
     // List all files
     view.forEachFile(FileCallback);
 
+
+    std::cout << std::endl << "--------------------------------" << std::endl;
+
+    // Mount a relative path into an existing path on disk
+    vfs.Mount("../ttvfs", "src");
+    if(!vfs.FillDirView("src", view))
+    {
+        std::cout << "ERROR" << std::endl;
+        return 2;
+    }
+    view.forEachFile(FileCallback);
+
+
+
     return 0;
 }

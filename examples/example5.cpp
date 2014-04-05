@@ -41,8 +41,8 @@ int main(int argc, char *argv[])
 
     // Some more fun.
     // Mount a path from inside the zip archive to the root directory.
-    // Note that the zip was already virtually unpacked to the root dir,
-    // so this step is really trivial.
+    // Note that the zip was already mounted to the root dir,
+    // so it will get the mounted subdir from there.
     vfs.Mount("pets", "");
 
     // Expected: WOOF WOOF!
