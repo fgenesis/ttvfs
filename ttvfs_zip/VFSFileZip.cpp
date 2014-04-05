@@ -52,6 +52,9 @@ bool ZipFile::iseof() const
 void ZipFile::close()
 {
     //flush(); // TODO: write to zip file on close
+
+    delete []_buf;
+    _buf = NULL;
 }
 
 bool ZipFile::seek(vfspos pos, int whence)
