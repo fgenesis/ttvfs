@@ -6,7 +6,7 @@
 #include <sstream>
 #include <ttvfs.h>
 
-ttvfs::VFSHelper vfs;
+ttvfs::Root vfs;
 
 
 /* This class is a minimal adapter to support STL-like read-only file streams for VFS files,

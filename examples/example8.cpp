@@ -14,7 +14,7 @@
 // (Try returning ttvfs::File* instead of a CountedPtr -- it will crash!)
 ttvfs::CountedPtr<ttvfs::File> openOneFile(const char *name, const char *mode)
 {
-    ttvfs::VFSHelper vfs;
+    ttvfs::Root vfs;
     vfs.AddLoader(new ttvfs::DiskLoader);
     ttvfs::CountedPtr<ttvfs::File> vf = vfs.GetFile(name);
     if(!vf->open(mode))

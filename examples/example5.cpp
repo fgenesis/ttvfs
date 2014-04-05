@@ -7,7 +7,7 @@
 
 int main(int argc, char *argv[])
 {
-    ttvfs::VFSHelper vfs;
+    ttvfs::Root vfs;
 
     vfs.AddLoader(new ttvfs::DiskLoader);
 

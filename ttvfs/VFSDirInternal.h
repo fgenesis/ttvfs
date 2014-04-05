@@ -7,14 +7,14 @@
 VFS_NAMESPACE_START
 
 
-class VFSHelper;
+class Root;
 class DirView;
 
 // Internal class, not to be used outside
 
 class InternalDir : public DirBase
 {
-    friend class VFSHelper;
+    friend class Root;
 
 public:
 

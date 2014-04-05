@@ -1,10 +1,10 @@
-// VFSHelper.cpp - glues it all together and makes use simple
+// VFSRoot.cpp - glues it all together and makes use simple
 // For conditions of distribution and use, see copyright notice in VFS.h
 
 #include <iostream> // for debug only, see EOF
 
 #include "VFSInternal.h"
-#include "VFSHelper.h"
+#include "VFSRoot.h"
 #include "VFSTools.h"
 
 #include "VFSDirInternal.h"
@@ -44,17 +44,17 @@ bool _checkCompatInternal(_AbiCheck *used)
     return !memcmp(&here, used, sizeof(here));
 }
 
-VFSHelper::VFSHelper()
+Root::Root()
 : merged(new InternalDir(""))
 {
 }
 
-VFSHelper::~VFSHelper()
+Root::~Root()
 {
     Clear();
 }
 
-void VFSHelper::Clear()
+void Root::Clear()
 {
     merged->_clearDirs();
     merged->_clearMounts();
@@ -63,12 +63,12 @@ void VFSHelper::Clear()
     archLdrs.clear();
 }
 
-bool VFSHelper::Mount(const char *src, const char *dest)
+bool Root::Mount(const char *src, const char *dest)
 {
     return AddVFSDir(GetDir(src, true), dest);
 }
 
-bool VFSHelper::AddVFSDir(DirBase *dir, const char *subdir /* = NULL */)
+bool Root::AddVFSDir(DirBase *dir, const char *subdir /* = NULL */)
 {
     if(!dir)
         return false;
@@ -81,7 +81,7 @@ bool VFSHelper::AddVFSDir(DirBase *dir, const char *subdir /* = NULL */)
     return true;
 }
 
-bool VFSHelper::Unmount(const char *src, const char *dest)
+bool Root::Unmount(const char *src, const char *dest)
 {
     DirBase *vdsrc = GetDir(src, false);
     InternalDir *vddest = safecastNonNull<InternalDir*>(GetDir(dest, false));
@@ -92,18 +92,18 @@ bool VFSHelper::Unmount(const char *src, const char *dest)
     return true;
 }
 
-void VFSHelper::AddLoader(VFSLoader *ldr, const char *path /* = NULL */)
+void Root::AddLoader(VFSLoader *ldr, const char *path /* = NULL */)
 {
     loaders.push_back(ldr);
     AddVFSDir(ldr->getRoot(), path);
 }
 
-void VFSHelper::AddArchiveLoader(VFSArchiveLoader *ldr)
+void Root::AddArchiveLoader(VFSArchiveLoader *ldr)
 {
     archLdrs.push_back(ldr);
 }
 
-Dir *VFSHelper::AddArchive(const char *arch, void *opaque /* = NULL */)
+Dir *Root::AddArchive(const char *arch, void *opaque /* = NULL */)
 {
     File *af = GetFile(arch);
     if(!af)
@@ -135,7 +135,7 @@ inline static File *VFSHelper_GetFileByLoader(VFSLoader *ldr, const char *fn, co
     return vf;
 }
 
-File *VFSHelper::GetFile(const char *fn)
+File *Root::GetFile(const char *fn)
 {
     const char *unmangled = fn;
     std::string fixed = fn; // TODO: get rid of allocation here
@@ -158,7 +158,7 @@ File *VFSHelper::GetFile(const char *fn)
     return vf;
 }
 
-InternalDir *VFSHelper::_GetDirByLoader(VFSLoader *ldr, const char *fn, const char *unmangled)
+InternalDir *Root::_GetDirByLoader(VFSLoader *ldr, const char *fn, const char *unmangled)
 {
     Dir *realdir = ldr->LoadDir(fn, unmangled);
     InternalDir *ret = NULL;
@@ -170,7 +170,7 @@ InternalDir *VFSHelper::_GetDirByLoader(VFSLoader *ldr, const char *fn, const ch
     return ret;
 }
 
-DirBase *VFSHelper::GetDir(const char* dn, bool create /* = false */)
+DirBase *Root::GetDir(const char* dn, bool create /* = false */)
 {
     const char *unmangled = dn;
     std::string fixed = dn; // TODO: get rid of alloc
@@ -196,18 +196,18 @@ DirBase *VFSHelper::GetDir(const char* dn, bool create /* = false */)
     return vd;
 }
 
-DirBase *VFSHelper::GetDirRoot()
+DirBase *Root::GetDirRoot()
 {
     return merged;
 }
 
-bool VFSHelper::FillDirView(const char *path, DirView& view)
+bool Root::FillDirView(const char *path, DirView& view)
 {
     return merged->fillView(path, view);
 }
 
 
-void VFSHelper::ClearGarbage()
+void Root::ClearGarbage()
 {
     merged->clearGarbage();
 }
@@ -259,7 +259,7 @@ static void _DumpTreeRecursive(DirBase *vd, void *user)
 
 }
 
-void VFSHelper::debugDumpTree(std::ostream& os, Dir *start /* = NULL */)
+void Root::debugDumpTree(std::ostream& os, Dir *start /* = NULL */)
 {
     _DbgParams recP(os, NULL, "");
     DirBase *d = start ? start : GetDirRoot();

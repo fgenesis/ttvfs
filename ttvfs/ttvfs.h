@@ -63,7 +63,7 @@ VFS_NAMESPACE_END
 
 
 #include <string>
-#include "VFSHelper.h"
+#include "VFSRoot.h"
 #include "VFSFile.h"
 #include "VFSDir.h"
 #include "VFSDirView.h"

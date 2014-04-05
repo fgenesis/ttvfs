@@ -15,12 +15,12 @@ set(ttvfs_SRC
     VFSFile.h
     VFSFileFuncs.cpp
     VFSFileFuncs.h
-    VFSHelper.cpp
-    VFSHelper.h
     VFSInternal.h
     VFSLoader.cpp
     VFSLoader.h
     VFSRefcounted.h
+    VFSRoot.h
+    VFSRoot.cpp
     VFSSystemPaths.cpp
     VFSSystemPaths.h
     VFSTools.cpp

@@ -4,7 +4,7 @@
 #include <iostream>
 #include <ttvfs.h>
 
-ttvfs::VFSHelper vfs;
+ttvfs::Root vfs;
 
 static void PrintFile(const char *fn)
 {

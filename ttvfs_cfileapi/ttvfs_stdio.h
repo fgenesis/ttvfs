@@ -28,7 +28,7 @@
 typedef ttvfs::File VFILE;
 
 
-void ttvfs_setroot(ttvfs::VFSHelper *root);
+void ttvfs_setroot(ttvfs::Root *root);
 
 VFILE *vfopen(const char *fn, const char *mode);
 size_t vfread(void *ptr, size_t size, size_t count, VFILE *vf);

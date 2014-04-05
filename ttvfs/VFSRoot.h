@@ -1,4 +1,4 @@
-// VFSHelper.h - glues it all together and makes use simple
+// VFSRoot.h - glues it all together and makes use simple
 // For conditions of distribution and use, see copyright notice in VFS.h
 
 #ifndef VFSHELPER_H
@@ -23,18 +23,18 @@ class VFSArchiveLoader;
 class DirView;
 
 
-/** VFSHelper - extensible class to simplify working with the VFS tree */
-class VFSHelper
+/** Root - extensible class to simplify working with the VFS tree */
+class Root
 {
 public:
-    VFSHelper();
-    virtual ~VFSHelper();
+    Root();
+    virtual ~Root();
 
     /** Reset an instance to its initial state.
         Drops all archives, loaders, archive loaders, mount points, internal trees, ...*/
     virtual void Clear();
 
-    /** Do cleanups from time to time. In base VFSHelper, this is a no-op.
+    /** Do cleanups from time to time. In base Root, this is a no-op.
         Extensions may wish to override this method do do cleanup jobs. */
     virtual void ClearGarbage();
 

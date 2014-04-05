@@ -15,7 +15,7 @@
 int main(int argc, char *argv[])
 {
 #if VFS_USING_C_API // <- This will be defined if VFS_ENABLE_C_API is on and the ttvfs overrides are in use.
-    ttvfs::VFSHelper vfs;
+    ttvfs::Root vfs;
     vfs.AddLoader(new ttvfs::DiskLoader);
 
     ttvfs_setroot(&vfs); // The C-like API supports only one (global) root object.

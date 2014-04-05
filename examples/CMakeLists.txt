@@ -27,5 +27,5 @@ endif()
 
 if(TTVFS_BUILD_CFILEAPI)
     add_executable(example7 example7.cpp)
-    target_link_libraries(example7 cfileapi)
+    target_link_libraries(example7 ttvfs_cfileapi)
 endif()

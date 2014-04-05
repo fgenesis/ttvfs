@@ -6,9 +6,9 @@
 #include <sstream>
 
 
-static ttvfs::VFSHelper *vfs = NULL;
+static ttvfs::Root *vfs = NULL;
 
-void ttvfs_setroot(ttvfs::VFSHelper *root)
+void ttvfs_setroot(ttvfs::Root *root)
 {
     vfs = root;
 }

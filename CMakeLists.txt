@@ -36,7 +36,7 @@ if(TTVFS_SUPPORT_ZIP)
     list(APPEND code_dirs "${CMAKE_CURRENT_SOURCE_DIR}/ttvfs_zip")
 endif()
 if(TTVFS_BUILD_CFILEAPI)
-    list(APPEND code_dirs "${CMAKE_CURRENT_SOURCE_DIR}/cfileapi")
+    list(APPEND code_dirs "${CMAKE_CURRENT_SOURCE_DIR}/ttvfs_cfileapi")
 endif()
 
 message(STATUS "Files dir: ${code_dirs}")
@@ -52,7 +52,7 @@ if(TTVFS_SUPPORT_ZIP)
 endif()
 
 if(TTVFS_BUILD_CFILEAPI)
-    add_subdirectory(cfileapi)
+    add_subdirectory(ttvfs_cfileapi)
 endif()
 
 if(TTVFS_BUILD_EXAMPLES)

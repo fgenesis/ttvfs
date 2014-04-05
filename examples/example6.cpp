@@ -12,7 +12,7 @@ static void FileCallback(ttvfs::File *vf, void * /*unused*/)
 
 int main(int argc, char *argv[])
 {
-    ttvfs::VFSHelper vfs;
+    ttvfs::Root vfs;
 
     vfs.AddLoader(new ttvfs::DiskLoader);
 
