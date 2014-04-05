@@ -15,7 +15,7 @@ ZipFile::ZipFile(const char *name, ZipArchiveRef *zref, vfspos uncompSize, unsig
 , _archiveHandle(zref)
 , _uncompSize(uncompSize)
 , _fileIdx(fileIdx)
-, _mode("b") // binary mode by default
+, _mode("rb") // binary mode by default
 {
 }
 
@@ -28,14 +28,13 @@ ZipFile::~ZipFile()
 bool ZipFile::open(const char *mode /* = NULL */)
 {
     _pos = 0;
-    if(mode)
+    if(!mode)
+        mode = "rb";
+    if(_mode != mode)
     {
-        if(_mode != mode)
-        {
-            delete [] _buf;
-            _buf = NULL;
-            _mode = mode;
-        }
+        delete [] _buf;
+        _buf = NULL;
+        _mode = mode;
     }
     return true; // does not have to be opened
 }
