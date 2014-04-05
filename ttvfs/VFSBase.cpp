@@ -8,7 +8,6 @@
 VFS_NAMESPACE_START
 
 VFSBase::VFSBase()
-: _origin(NULL)
 {
 }
 

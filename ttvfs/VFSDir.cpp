@@ -205,6 +205,9 @@ File *Dir::getFileByName(const char *fn)
     if(it != _files.end())
         return it->second;
 
+    if(!_loader)
+        return NULL;
+
     // Lazy-load file if it's not in the tree yet
     // TODO: get rid of alloc
     std::string fn2 = fullname();
@@ -301,6 +304,8 @@ DirBase *Dir::getDirByName(const char *dn)
     if((sub = DirBase::getDirByName(dn)))
         return sub;
 
+    if(!_loader)
+        return NULL;
 
     // Lazy-load file if it's not in the tree yet
     // TODO: get rid of alloc

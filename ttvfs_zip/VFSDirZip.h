@@ -2,30 +2,26 @@
 #define VFSDIR_ZIP_H
 
 #include "VFSDir.h"
-
-#include "miniz.h"
+#include "VFSZipArchiveRef.h"
 
 VFS_NAMESPACE_START
 
-class VFSFile;
 
-class VFSDirZip : public VFSDir
+class ZipDir : public Dir
 {
 public:
-    VFSDirZip(VFSFile *zf);
-    virtual ~VFSDirZip();
-    virtual unsigned int load(bool recusive);
-    virtual VFSDir *createNew(const char *dir) const;
-    virtual const char *getType() const { return "VFSDirZip"; }
-    virtual bool close();
-
-    inline mz_zip_archive *getZip() { return &_zip; }
+    ZipDir(ZipArchiveRef *handle, const char *subpath);
+    virtual ~ZipDir();
+    virtual void load();
+    virtual const char *getType() const { return "ZipDir"; }
+    virtual void close();
+    virtual DirBase *createNew(const char *dir) const;
 
 protected:
-    VFSFile *_zf;
-    mz_zip_archive _zip;
-    std::string zipfilename;
+
+    CountedPtr<ZipArchiveRef> _archiveHandle;
 };
+
 
 VFS_NAMESPACE_END
 

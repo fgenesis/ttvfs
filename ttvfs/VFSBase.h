@@ -40,13 +40,6 @@ public:
     /** Can be overloaded if necessary. Called by VFSHelper::ClearGarbage() */
     virtual void clearGarbage() {}
 
-    /** Returns an object this object depends on. (used internally, by extensions) */
-    inline VFSBase *getOrigin() const { return _origin; }
-
-
-    // For internal use
-    inline void _setOrigin(VFSBase *origin) { _origin = origin; }
-
 protected:
     VFSBase();
     void _setName(const char *n);
@@ -56,8 +49,6 @@ private:
     const char *_name; // must point to an address constant during object lifetime (like _fullname.c_str() + N)
                        // (not necessary to have an additional string copy here, just wastes memory)
     std::string _fullname;
-
-    VFSBase *_origin; // May store a pointer if necessary. NOT ref-counted, because this would create cycles in almost all cases.
 };
 
 
