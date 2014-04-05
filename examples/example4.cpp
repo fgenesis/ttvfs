@@ -33,5 +33,26 @@ int main(int argc, char *argv[])
 
     vf->close();
 
+
+    // ---------------------------------------------------
+    // Nested archives work too!
+
+    vfs.AddArchive("nested.zip");
+    vfs.AddArchive("nested.zip/nested2.zip");
+
+    vf = vfs.GetFile("nested.zip/nested2.zip/file.txt");
+    if(!vf || !vf->open("r"))
+    {
+        puts("ERROR\n"); // failed to find file
+        return 2;
+    }
+
+    bytes = vf->read(buf, 512);
+    buf[bytes] = 0;
+    puts(buf);
+
+    vf->close();
+
+
     return 0;
 }

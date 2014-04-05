@@ -49,13 +49,13 @@ void ZipDir::load()
     {
         if(mz_zip_reader_is_file_encrypted(MZ, i))
             continue;
-        if(!mz_zip_reader_file_stat(MZ, i, &fs))
-            continue;
         if(mz_zip_reader_is_file_a_directory(MZ, i))
         {
             getDir(fs.m_filename, true);
             continue;
         }
+        if(!mz_zip_reader_file_stat(MZ, i, &fs))
+            continue;
         if(getFile(fs.m_filename))
             continue;
 
