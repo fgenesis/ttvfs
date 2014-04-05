@@ -42,7 +42,7 @@ void InternalDir::_addMountDir(CountedPtr<DirBase> d)
         if(*it == d)
         {
             _mountedDirs.erase(it);
-            break; 
+            break;
         }
 
     _mountedDirs.push_back(d);
@@ -64,6 +64,19 @@ File *InternalDir::getFileByName(const char *fn)
         for(MountedDirs::reverse_iterator it = _mountedDirs.rbegin(); it != _mountedDirs.rend(); ++it)
             if(File *f = (*it)->getFileByName(fn))
                 return f;
+    return NULL;
+}
+
+DirBase *InternalDir::getDirByName(const char *dn)
+{
+    DirBase *sub;
+    if((sub = DirBase::getDirByName(dn)))
+        return sub;
+
+    for(MountedDirs::reverse_iterator it = _mountedDirs.rbegin(); it != _mountedDirs.rend(); ++it)
+        if((sub = (*it)->getDirByName(dn)))
+            return sub;
+
     return NULL;
 }
 

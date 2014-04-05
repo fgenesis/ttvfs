@@ -126,9 +126,8 @@ DirBase *DirBase::getDir(const char *subdir, bool forceCreate /* = false */)
     }
     else
     {
-        Dirs::iterator it = _subdirs.find(subdir);
-        if(it != _subdirs.end())
-            ret = it->second;
+        if(DirBase *dir = getDirByName(subdir))
+            ret = dir;
         else if(forceCreate)
         {
             size_t fullLen = fullnameLen();
@@ -275,6 +274,7 @@ bool Dir::addRecursive(File *f, size_t skip /* = 0 */)
         {
             char *dirname = (char*)VFS_STACK_ALLOC(prefixLen);
             --prefixLen; // -1 to strip the trailing '/'. That's the position where to put the terminating null byte.
+            ++skip;
             memcpy(dirname, f->fullname() + skip, prefixLen); // copy trailing null byte
             dirname[prefixLen] = 0;
             vdir = safecastNonNull<Dir*>(getDir(dirname, true));

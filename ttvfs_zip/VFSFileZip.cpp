@@ -17,6 +17,7 @@ ZipFile::ZipFile(const char *name, ZipArchiveRef *zref, vfspos uncompSize, unsig
 , _fileIdx(fileIdx)
 , _mode("b") // binary mode by default
 {
+    int a = 0;
 }
 
 ZipFile::~ZipFile()

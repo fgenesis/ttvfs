@@ -2,22 +2,17 @@
 /* ttvfs example #5 - Mounting  */
 
 #include <cstdio>
-#include <VFS.h>
+#include <ttvfs.h>
 #include <VFSZipArchiveLoader.h>
 
 int main(int argc, char *argv[])
 {
     ttvfs::VFSHelper vfs;
 
+    vfs.AddLoader(new ttvfs::DiskLoader);
+
     // Make the VFS able to load Zip files
     vfs.AddArchiveLoader(new ttvfs::VFSZipArchiveLoader);
-
-    // Load all files from current directory.
-    // Here, it is again required to load everything recursively so that the mounting will work.
-    vfs.LoadFileSysRoot(true);
-
-    // Make the VFS usable
-    vfs.Prepare();
 
     // Merge "patches" dir into root dir, virtually overwriting files
     vfs.Mount("patches", "");
@@ -27,16 +22,20 @@ int main(int argc, char *argv[])
     // Because it knows its own path (which is "patches/test.zip") and this is different from where we
     // actually want to mount it, we have to explicitly specify the path, which is the root dir ("").
     // (Otherwise, the zip archive would provide its contents in "patches/*")
-    vfs.AddArchive("test.zip", false, "");
+    vfs.AddArchive("test.zip");
+    vfs.Mount("test.zip", "");
 
     // Expected: myfile.txt inside patches/test.zip.
-    ttvfs::VFSFile *vf = vfs.GetFile("myfile.txt");
-    if(!vf)
+    ttvfs::File *vf = vfs.GetFile("myfile.txt");
+    if(!vf || !vf->open("r"))
     {
         puts("ERROR 1\n");
         return 1; 
     }
-    puts((const char*)vf->getBuf());
+    char buf[513];
+    size_t bytes = vf->read(buf, 512);
+    buf[bytes] = 0;
+    puts(buf);
 
 
 
@@ -48,12 +47,14 @@ int main(int argc, char *argv[])
 
     // Expected: WOOF WOOF!
     vf = vfs.GetFile("dog.txt");
-    if(!vf)
+    if(!vf || !vf->open("r"))
     {
         puts("ERROR 2\n");
-        return 1; 
+        return 1;
     }
-    puts((const char*)vf->getBuf());
+    bytes = vf->read(buf, 512);
+    buf[bytes] = 0;
+    puts(buf);
 
     return 0;
 }

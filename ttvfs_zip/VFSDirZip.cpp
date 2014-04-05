@@ -10,10 +10,11 @@ VFS_NAMESPACE_START
 
 
 
-ZipDir::ZipDir(ZipArchiveRef *handle, const char *subpath)
-: Dir(joinPath(handle->fullname(), subpath).c_str(), NULL)
+ZipDir::ZipDir(ZipArchiveRef *handle, const char *fullpath)
+: Dir(fullpath, NULL)
 , _archiveHandle(handle)
 {
+    int a = 0;
 }
 
 ZipDir::~ZipDir()
@@ -27,12 +28,11 @@ void ZipDir::close(void)
     _archiveHandle->close();
 }
 
-DirBase *ZipDir::createNew(const char *dir) const
+DirBase *ZipDir::createNew(const char *fullpath) const
 {
     const ZipArchiveRef *czref = _archiveHandle;
     ZipArchiveRef *zref = const_cast<ZipArchiveRef*>(czref);
-    // FIXME: verify ctor is correct
-    return new ZipDir(zref, dir);
+    return new ZipDir(zref, fullpath);
 }
 
 #define MZ ((mz_zip_archive*)_archiveHandle->mz)
