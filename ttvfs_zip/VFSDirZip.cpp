@@ -14,7 +14,6 @@ ZipDir::ZipDir(ZipArchiveRef *handle, const char *fullpath)
 : Dir(fullpath, NULL)
 , _archiveHandle(handle)
 {
-    int a = 0;
 }
 
 ZipDir::~ZipDir()
@@ -23,7 +22,7 @@ ZipDir::~ZipDir()
 }
 
 
-void ZipDir::close(void)
+void ZipDir::close()
 {
     _archiveHandle->close();
 }

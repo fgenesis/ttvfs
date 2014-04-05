@@ -54,7 +54,7 @@ VFSHelper::~VFSHelper()
     Clear();
 }
 
-void VFSHelper::Clear(void)
+void VFSHelper::Clear()
 {
     merged->_clearDirs();
     merged->_clearMounts();
@@ -196,7 +196,7 @@ DirBase *VFSHelper::GetDir(const char* dn, bool create /* = false */)
     return vd;
 }
 
-DirBase *VFSHelper::GetDirRoot(void)
+DirBase *VFSHelper::GetDirRoot()
 {
     return merged;
 }
@@ -207,7 +207,7 @@ bool VFSHelper::FillDirView(const char *path, DirView& view)
 }
 
 
-void VFSHelper::ClearGarbage(void)
+void VFSHelper::ClearGarbage()
 {
     merged->clearGarbage();
 }

@@ -154,7 +154,7 @@ public:
     virtual ~DiskDir() {};
     virtual void load();
     virtual DiskDir *createNew(const char *dir) const;
-    virtual const char *getType(void) const { return "DiskDir"; }
+    virtual const char *getType() const { return "DiskDir"; }
 };
 
 VFS_NAMESPACE_END

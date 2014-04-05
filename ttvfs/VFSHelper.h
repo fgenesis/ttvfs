@@ -32,11 +32,11 @@ public:
 
     /** Reset an instance to its initial state.
         Drops all archives, loaders, archive loaders, mount points, internal trees, ...*/
-    virtual void Clear(void);
+    virtual void Clear();
 
     /** Do cleanups from time to time. In base VFSHelper, this is a no-op.
         Extensions may wish to override this method do do cleanup jobs. */
-    virtual void ClearGarbage(void);
+    virtual void ClearGarbage();
 
     /** Mount a directory in the tree to a different location. Requires a previous call to Prepare().
         This can be imagined like a symlink pointing to a different location.
@@ -90,7 +90,7 @@ public:
     DirBase *GetDir(const char* dn, bool create = false);
 
     /** Returns the tree root, which is usually the working directory. */
-    DirBase *GetDirRoot(void);
+    DirBase *GetDirRoot();
 
     bool FillDirView(const char *path, DirView& view);
 

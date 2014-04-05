@@ -17,7 +17,6 @@ ZipFile::ZipFile(const char *name, ZipArchiveRef *zref, vfspos uncompSize, unsig
 , _fileIdx(fileIdx)
 , _mode("b") // binary mode by default
 {
-    int a = 0;
 }
 
 ZipFile::~ZipFile()
@@ -41,17 +40,17 @@ bool ZipFile::open(const char *mode /* = NULL */)
     return true; // does not have to be opened
 }
 
-bool ZipFile::isopen(void) const
+bool ZipFile::isopen() const
 {
     return true; // is always open
 }
 
-bool ZipFile::iseof(void) const
+bool ZipFile::iseof() const
 {
     return _pos >= _uncompSize;
 }
 
-void ZipFile::close(void)
+void ZipFile::close()
 {
     //flush(); // TODO: write to zip file on close
 }
@@ -86,13 +85,13 @@ bool ZipFile::seek(vfspos pos, int whence)
     return true;
 }
 
-bool ZipFile::flush(void)
+bool ZipFile::flush()
 {
     // FIXME: use this to actually write to zip file?
     return false;
 }
 
-vfspos ZipFile::getpos(void) const
+vfspos ZipFile::getpos() const
 {
     return _pos;
 }
@@ -120,7 +119,7 @@ unsigned int ZipFile::write(const void *src, unsigned int bytes)
     return 0;
 }
 
-vfspos ZipFile::size(void)
+vfspos ZipFile::size()
 {
     return (vfspos)_uncompSize;
 }

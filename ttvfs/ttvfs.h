@@ -42,7 +42,7 @@ bool _checkCompatInternal(_AbiCheck *abi);
 /** It is recommended to call this function early in your code
     and ensure it returns true - if it does not, compiler settings
     are inconsistent, which may cause otherwise hard to detect problems. */
-inline static bool checkCompat(void)
+inline static bool checkCompat()
 {
     _AbiCheck abi;
     memset(&abi, 0, sizeof(abi));
