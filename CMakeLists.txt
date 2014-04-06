@@ -6,6 +6,7 @@ option(TTVFS_SUPPORT_ZIP "Build support for zip archives?" FALSE)
 option(TTVFS_LARGEFILE_SUPPORT "Enable support for files > 4 GB? (experimental!)" TRUE)
 option(TTVFS_IGNORE_CASE "Enable full case-insensitivity even on case-sensitive OSes like Linux and alike?" TRUE)
 option(TTVFS_BUILD_CFILEAPI "Build C-style API wrapper" TRUE)
+option(TTVFS_BUILD_TESTS "Build tests" FALSE)
 
 # Be sure to copy this part to your root CMakeLists.txt if you prefer to use CMake for configuring
 # instead of editing the config header directly!
@@ -58,3 +59,8 @@ endif()
 if(TTVFS_BUILD_EXAMPLES)
     add_subdirectory(examples)
 endif()
+
+if(TTVFS_BUILD_TESTS)
+    add_subdirectory(test)
+endif()
+
