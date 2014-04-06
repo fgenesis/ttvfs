@@ -267,7 +267,6 @@ bool Dir::addRecursive(File *f, size_t skip /* = 0 */)
         {
             char *dirname = (char*)VFS_STACK_ALLOC(prefixLen);
             --prefixLen; // -1 to strip the trailing '/'. That's the position where to put the terminating null byte.
-            ++skip;
             memcpy(dirname, f->fullname() + skip, prefixLen); // copy trailing null byte
             dirname[prefixLen] = 0;
             vdir = safecastNonNull<Dir*>(getDir(dirname, true));
