@@ -34,6 +34,11 @@ InternalDir *InternalDir::createNew(const char *dir) const
     return new InternalDir(dir);
 }
 
+void InternalDir::close()
+{
+    for(MountedDirs::iterator it = _mountedDirs.begin(); it != _mountedDirs.end(); ++it)
+        (*it)->close();
+}
 
 void InternalDir::_addMountDir(CountedPtr<DirBase> d)
 {

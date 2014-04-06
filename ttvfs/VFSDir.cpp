@@ -55,7 +55,7 @@ File *DirBase::getFile(const char *fn, bool lazyLoad /* = true */)
 
         pos_known:
             *slashpos = 0;
-            subdir = subdir->getDirByName(ptr, true, false);
+            subdir = subdir->getDirByName(ptr, true, true);
         }
         while(subdir);
         VFS_STACK_FREE(dup);

@@ -86,7 +86,9 @@ unsigned int DiskFile::write(const void *src, size_t bytes)
 
 vfspos DiskFile::size()
 {
-    return GetFileSize(fullname());
+    vfspos sz = 0;
+    bool ok = GetFileSize(fullname(), sz);
+    return ok ? sz : npos;
 }
 
 // ------------- MemFile -----------------------

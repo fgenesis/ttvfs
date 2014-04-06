@@ -25,7 +25,7 @@ bool FileExists(const char *);
 bool IsDirectory(const char *);
 bool CreateDir(const char*);
 bool CreateDirRec(const char*);
-vfspos GetFileSize(const char*);
+bool GetFileSize(const char*, vfspos&);
 void FixSlashes(std::string& s);
 void FixPath(std::string& s);
 const char *GetBaseNameFromPath(const char *str);

@@ -270,26 +270,29 @@ bool CreateDirRec(const char *dir)
     return result || last;
 }
 
-vfspos GetFileSize(const char* fn)
+bool GetFileSize(const char* fn, vfspos& size)
 {
+    vfspos sz = 0;
 #ifdef VFS_LARGEFILE_SUPPORT
 # ifdef _MSC_VER
     struct _stat64 st;
     if(_stat64(fn, &st))
-        return 0;
-    return st.st_size;
+        return false;
+    sz = st.st_size;
 # else // _MSC_VER
     struct stat64 st;
     if(stat64(fn, &st))
-        return 0;
-    return st.st_size;
+        return false;
+    sz = st.st_size;
 # endif
 #else // VFS_LARGEFILE_SUPPORT
     struct stat st;
     if(stat(fn, &st))
-        return 0;
-    return st.st_size;
+        return false;
+    sz = st.st_size;
 #endif
+    size = sz;
+    return true;
 }
 
 void FixSlashes(std::string& s)

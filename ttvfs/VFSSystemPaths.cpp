@@ -1,11 +1,12 @@
+#include "VFSInternal.h"
+
 #ifdef _WIN32
-#  define _CRT_SECURE_NO_WARNINGS
 #  include <shlobj.h>
 #endif
 
 #include "VFSSystemPaths.h"
 #include "VFSTools.h"
-#include "VFSInternal.h"
+
 
 VFS_NAMESPACE_START
 

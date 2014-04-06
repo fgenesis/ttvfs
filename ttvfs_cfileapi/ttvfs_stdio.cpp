@@ -77,6 +77,15 @@ char *vfgets(char *str, int num, VFILE *vf)
     return str;
 }
 
+int vfsize(VFILE *f, size_t *sizep)
+{
+    ttvfs::vfspos sz = f->size();
+    if(sz == ttvfs::npos)
+        return -1;
+    *sizep = (size_t)sz;
+    return 0;
+}
+
 long int vftell(VFILE *vf)
 {
     return (long int)vf->getpos();
@@ -110,5 +119,19 @@ bool InStream::open(const char *fn)
     }
     setstate(std::ios::failbit);
     return false;
+}
+
+int ttvfs_stdio_fsize(VFILE *f, size_t *sizep)
+{
+    size_t sz = 0;
+    if (  vfseek(f, 0, SEEK_END) != 0
+       || (sz = vftell(f)) < 0
+       || vfseek(f, 0, SEEK_SET) != 0)
+    {
+        return -1;
+    }
+
+    *sizep = sz;
+    return 0;
 }
 

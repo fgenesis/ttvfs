@@ -10,7 +10,7 @@ VFS_NAMESPACE_START
 class ZipDir : public Dir
 {
 public:
-    ZipDir(ZipArchiveRef *handle, const char *subpath);
+    ZipDir(ZipArchiveRef *handle, const char *subpath, bool canLoad);
     virtual ~ZipDir();
     virtual void load();
     virtual const char *getType() const { return "ZipDir"; }
@@ -18,8 +18,9 @@ public:
     virtual DirBase *createNew(const char *dir) const;
 
 protected:
-
     CountedPtr<ZipArchiveRef> _archiveHandle;
+    bool _canLoad;
+    const bool _couldLoad;
 };
 
 

@@ -10,9 +10,11 @@ VFS_NAMESPACE_START
 
 
 
-ZipDir::ZipDir(ZipArchiveRef *handle, const char *fullpath)
+ZipDir::ZipDir(ZipArchiveRef *handle, const char *fullpath, bool canLoad)
 : Dir(fullpath, NULL)
 , _archiveHandle(handle)
+, _canLoad(canLoad)
+, _couldLoad(canLoad)
 {
 }
 
@@ -25,19 +27,23 @@ ZipDir::~ZipDir()
 void ZipDir::close()
 {
     _archiveHandle->close();
+    _canLoad = _couldLoad; // allow loading again after re-opening (in case archive was replaced)
 }
 
 DirBase *ZipDir::createNew(const char *fullpath) const
 {
     const ZipArchiveRef *czref = _archiveHandle;
     ZipArchiveRef *zref = const_cast<ZipArchiveRef*>(czref);
-    return new ZipDir(zref, fullpath);
+    return new ZipDir(zref, fullpath, false);
 }
 
 #define MZ ((mz_zip_archive*)_archiveHandle->mz)
 
 void ZipDir::load()
 {
+    if(!_canLoad)
+        return;
+
     _archiveHandle->openRead();
 
     const unsigned int files = mz_zip_reader_get_num_files(MZ);
@@ -48,19 +54,21 @@ void ZipDir::load()
     {
         if(mz_zip_reader_is_file_encrypted(MZ, i))
             continue;
+        if(!mz_zip_reader_file_stat(MZ, i, &fs))
+            continue;
         if(mz_zip_reader_is_file_a_directory(MZ, i))
         {
             getDir(fs.m_filename, true);
             continue;
         }
-        if(!mz_zip_reader_file_stat(MZ, i, &fs))
-            continue;
         if(getFile(fs.m_filename))
             continue;
 
-        ZipFile *vf = new ZipFile(fs.m_filename, _archiveHandle, (vfspos)fs.m_uncomp_size, fs.m_file_index); // TODO: stat
-        addRecursive(vf, len); // FIXME: correct?
+        ZipFile *vf = new ZipFile(fs.m_filename, _archiveHandle, (vfspos)fs.m_uncomp_size, fs.m_file_index);
+        addRecursive(vf, len);
     }
+
+    _canLoad = false;
 }
 
 

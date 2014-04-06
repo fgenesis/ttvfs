@@ -21,7 +21,7 @@ ZipFile::ZipFile(const char *name, ZipArchiveRef *zref, vfspos uncompSize, unsig
 
 ZipFile::~ZipFile()
 {
-    delete [] _buf;
+    close();
 }
 
 
