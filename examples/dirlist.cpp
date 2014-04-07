@@ -11,7 +11,7 @@ int main(int argc, char *argv[])
 	ttvfs::StringList sl;
 	ttvfs::GetDirList(dir, sl, depth);
 
-	printf("== [ \"%s\" -> %d entries ]==\n", dir, sl.size());
+	printf("== [ \"%s\" -> %d entries ]==\n", dir, (unsigned int)sl.size());
 
 	for(ttvfs::StringList::iterator it = sl.begin(); it != sl.end(); ++it)
 	{
