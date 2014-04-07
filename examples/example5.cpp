@@ -5,24 +5,37 @@
 #include <ttvfs.h>
 #include <VFSZipArchiveLoader.h>
 
+static void dirCallback(ttvfs::DirBase *vd, void * /*unused*/)
+{
+    std::cout << "D : " << vd->name() << " --> " << vd->fullname() << std::endl;
+}
+static void fileCallback(ttvfs::File *vf, void * /*unused*/)
+{
+    std::cout << " F: " << vf->name() << " --> " << vf->fullname() << std::endl;
+}
+
+static void showDir(ttvfs::Root& vfs, const char *path)
+{
+    ttvfs::DirView view;
+    vfs.FillDirView(path, view);
+    view.forEachDir(dirCallback);
+    view.forEachFile(fileCallback);
+}
+
 int main(int argc, char *argv[])
 {
     ttvfs::Root vfs;
-
     vfs.AddLoader(new ttvfs::DiskLoader);
-
-    // Make the VFS able to load Zip files
     vfs.AddArchiveLoader(new ttvfs::VFSZipArchiveLoader);
 
     // Merge "patches" dir into root dir, virtually overwriting files
     vfs.Mount("patches", "");
 
-    // This time, do not mount as a subdir, but instead, unpack to the containing directory.
-    // Note: The archive added here is the one really in the "patches" subdir!
-    // Because it knows its own path (which is "patches/test.zip") and this is different from where we
-    // actually want to mount it, we have to explicitly specify the path, which is the root dir ("").
-    // (Otherwise, the zip archive would provide its contents in "patches/*")
+    // First, load patches/test.zip
+    // (remember, patches/test.zip "overwrites" ./test.zip)
     vfs.AddArchive("test.zip");
+
+    // Then, make its contents available in the root dir
     vfs.Mount("test.zip", "");
 
     // Expected: myfile.txt inside patches/test.zip.
@@ -38,12 +51,15 @@ int main(int argc, char *argv[])
     puts(buf);
 
 
-
     // Some more fun.
     // Mount a path from inside the zip archive to the root directory.
-    // Note that the zip was already mounted to the root dir,
+    // Note that its contents was already mounted to the root dir,
     // so it will get the mounted subdir from there.
     vfs.Mount("pets", "");
+
+    // Let's see where all the files now in the root dir come from.
+    showDir(vfs, "");
+    puts("-------");
 
     // Expected: WOOF WOOF!
     vf = vfs.GetFile("dog.txt");

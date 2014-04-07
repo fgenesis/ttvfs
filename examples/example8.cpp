@@ -8,7 +8,7 @@
 // The file stays valid until the CountedPtr is destroyed.
 // You can use CountedPtr::content() to obtain a raw pointer,
 // but usually conversions are done automatically.
-// Bottom line: If you store ttvfs::Files in data structures
+// Bottom line: If you store ttvfs objects in data structures
 // and then modify the file tree, you might end up with dangling pointers.
 // So use CountedPtr whenever you are going to keep hold of a file for a longer time.
 // (Try returning ttvfs::File* instead of a CountedPtr -- it will crash!)
@@ -18,7 +18,7 @@ ttvfs::CountedPtr<ttvfs::File> openOneFile(const char *name, const char *mode)
     vfs.AddLoader(new ttvfs::DiskLoader);
     ttvfs::CountedPtr<ttvfs::File> vf = vfs.GetFile(name);
     if(!vf->open(mode))
-        return NULL;
+        return NULL; // can simply return, the CountedPtr will clean up
     return vf; // <- pointer stays valid even after vfs is destroyed
 }
 

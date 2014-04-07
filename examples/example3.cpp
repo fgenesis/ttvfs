@@ -12,6 +12,8 @@ ttvfs::Root vfs;
 /* This class is a minimal adapter to support STL-like read-only file streams for VFS files,
  * using std::istringstream. Beware, it reads a whole file at once, use this only
  * if your text files are reasonably small!
+ * Also see example #7 for a very slightly extended stream class that comes with the
+ * replacement API.
 */
 class VFSTextStdStreamIn : public std::istringstream
 {
@@ -23,7 +25,7 @@ public:
 VFSTextStdStreamIn::VFSTextStdStreamIn(const char *fn, bool dropOther /* = true */)
 : std::istringstream()
 {
-    // Note that this is very sloppy. Ideally, only read until a newline, and keep the file open.
+    // Note that this is very sloppy. Ideally, only read a small buffer, and keep the file open.
     // This slurps the whole file into memory and should not be used for big files.
     ttvfs::File *vf = vfs.GetFile(fn);
     if(vf && vf->open("r")) // force text mode reading
