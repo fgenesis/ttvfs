@@ -1,7 +1,8 @@
 
 /* ttvfs example #5 - Mounting  */
 
-#include <cstdio>
+#include <iostream>
+#include <stdio.h>
 #include <ttvfs.h>
 #include <VFSZipArchiveLoader.h>
 

@@ -18,7 +18,7 @@ static void fileCallback(ttvfs::File *vf, void *user)
 
 int main(int argc, char *argv[])
 {
-    // this should be checked, especially in larger projects
+    // this should be checked, especially in larger projects or when included as a dynamic library6
     if(!ttvfs::checkCompat())
     {
         std::cout << "HUH? ttvfs was compiled with different options than this file!" << std::endl;

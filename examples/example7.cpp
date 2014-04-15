@@ -11,6 +11,7 @@
 
 
 #include <ttvfs_stdio.h>
+#include <ttvfs.h> // this does not need to be included if the file calls only vfopen() and friends
 
 int main(int argc, char *argv[])
 {
