@@ -10,6 +10,7 @@ set(ttvfs_zip_SRC
     VFSZipArchiveRef.h
     miniz.c
     miniz.h
+    ttvfs_zip.h
 )
 
 include_directories(${TTVFS_INCLUDE_DIRS})

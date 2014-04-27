@@ -146,11 +146,11 @@ bool ZipFile::unpack()
     if(sz < 0)
         return false;
 
-    _buf = new char[sz + 1];
+    _buf = new char[size_t(sz) + 1];
     if(!_buf)
         return false;
 
-    if(!mz_zip_reader_extract_to_mem(MZ, _fileIdx, _buf, sz, 0))
+    if(!mz_zip_reader_extract_to_mem(MZ, _fileIdx, _buf, (size_t)sz, 0))
     {
         //assert(0 && "ZipFile unpack: Failed mz_zip_reader_extract_to_mem");
         delete [] _buf;

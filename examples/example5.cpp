@@ -4,7 +4,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <ttvfs.h>
-#include <VFSZipArchiveLoader.h>
+#include <ttvfs_zip.h>
 
 static void dirCallback(ttvfs::DirBase *vd, void * /*unused*/)
 {

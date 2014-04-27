@@ -23,6 +23,9 @@ if(TTVFS_SUPPORT_ZIP)
 
     add_executable(example5 example5.cpp)
     target_link_libraries(example5 ttvfs ttvfs_zip)
+
+    add_executable(example9 example9.cpp)
+    target_link_libraries(example9 ttvfs ttvfs_zip)
 endif()
 
 if(TTVFS_BUILD_CFILEAPI)

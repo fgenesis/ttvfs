@@ -3,7 +3,7 @@
 
 #include <cstdio>
 #include <ttvfs.h>
-#include <VFSZipArchiveLoader.h>
+#include <ttvfs_zip.h>
 
 int main(int argc, char *argv[])
 {
