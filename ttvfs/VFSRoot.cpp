@@ -63,6 +63,7 @@ void Root::Clear()
 
     loaders.clear();
     archLdrs.clear();
+    loadersInfo.clear();
 }
 
 void Root::Mount(const char *src, const char *dest)
@@ -78,26 +79,54 @@ void Root::AddVFSDir(DirBase *dir, const char *subdir /* = NULL */)
     into->_addMountDir(dir);
 }
 
-bool Root::Unmount(const char *src, const char *dest)
+bool Root::RemoveVFSDir(DirBase *dir, const char *subdir /* = NULL */)
 {
-    DirBase *vdsrc = GetDir(src, false);
-    InternalDir *vddest = safecast<InternalDir*>(GetDir(dest, false));
-    if(!vdsrc || !vddest)
+    if(!subdir)
+        subdir = dir->fullname();
+    InternalDir *vddest = safecast<InternalDir*>(GetDir(subdir, false));
+    if(!vddest)
         return false;
 
-    vddest->_removeMountDir(vdsrc);
+    vddest->_removeMountDir(dir);
     return true;
 }
 
-void Root::AddLoader(VFSLoader *ldr, const char *path /* = NULL */)
+bool Root::Unmount(const char *src, const char *dest)
 {
-    loaders.push_back(ldr);
-    AddVFSDir(ldr->getRoot(), path);
+    DirBase *vdsrc = GetDir(src, false);
+    if(!vdsrc)
+        return false;
+
+    return RemoveVFSDir(vdsrc, dest);
 }
 
-void Root::AddArchiveLoader(VFSArchiveLoader *ldr)
+int Root::AddLoader(VFSLoader *ldr, const char *path /* = NULL */)
 {
+    DEBUG_ASSERT(ldr != NULL);
+    loaders.push_back(ldr);
+    loadersInfo.push_back(path);
+    AddVFSDir(ldr->getRoot(), path);
+    return (int)(loaders.size() - 1);
+}
+
+void Root::RemoveLoader(int index, const char *path /* = NULL */)
+{
+    VFSLoader *ldr = loaders[index];
+    RemoveVFSDir(ldr->getRoot(), loadersInfo[index].getPath());
+    loaders.erase(loaders.begin() + index);
+    loadersInfo.erase(loadersInfo.begin() + index);
+}
+
+int Root::AddArchiveLoader(VFSArchiveLoader *ldr)
+{
+    DEBUG_ASSERT(ldr != NULL);
     archLdrs.push_back(ldr);
+    return (int)(archLdrs.size() - 1);
+}
+
+void Root::RemoveArchiveLoader(int index)
+{
+    archLdrs.erase(archLdrs.begin() + index);
 }
 
 Dir *Root::AddArchive(const char *arch, void *opaque /* = NULL */)
@@ -216,6 +245,19 @@ void Root::ClearGarbage()
     merged->clearGarbage();
 }
 
+bool Root::ForEach(const char *path, FileEnumCallback fileCallback /* = NULL */, DirEnumCallback dirCallback /* = NULL */,
+                   void *user /* = NULL */, bool safe /* = false */)
+{
+    DirView view;
+    if(!FillDirView(path, view))
+        return false;
+
+    if(fileCallback)
+        view.forEachFile(fileCallback, user, safe);
+    if(dirCallback)
+        view.forEachDir(dirCallback, user, safe);
+    return true;
+}
 
 
 // DEBUG STUFF

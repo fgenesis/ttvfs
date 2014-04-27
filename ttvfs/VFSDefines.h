@@ -63,6 +63,12 @@ struct _AbiCheck
     int nocase;
 };
 
+class File;
+class DirBase;
+
+typedef void (*FileEnumCallback)(File *vf, void *user);
+typedef void (*DirEnumCallback)(DirBase *vd, void *user);
+
 
 VFS_NAMESPACE_END
 

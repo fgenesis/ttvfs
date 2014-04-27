@@ -59,9 +59,6 @@ class DirView;
 class File;
 class VFSLoader;
 
-typedef void (*FileEnumCallback)(File *vf, void *user);
-typedef void (*DirEnumCallback)(DirBase *vd, void *user);
-
 
 // Avoid using std::string as key.
 // The file names are known to remain constant during each object's lifetime,
