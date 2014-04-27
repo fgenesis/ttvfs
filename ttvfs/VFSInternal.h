@@ -17,6 +17,7 @@
 #include <cstring>
 #include <string>
 #include <cassert>
+#include <algorithm>
 
 VFS_NAMESPACE_START
 
