@@ -132,7 +132,7 @@ inline static File *VFSHelper_GetFileByLoader(VFSLoader *ldr, const char *fn, co
         return NULL;
     File *vf = ldr->Load(fn, unmangled);
     if(vf)
-        ldr->getRoot()->addRecursive(vf);
+        ldr->getRoot()->add(vf);
     return vf;
 }
 

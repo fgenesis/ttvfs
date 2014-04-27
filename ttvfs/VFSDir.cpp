@@ -239,12 +239,13 @@ void Dir::forEachDir(DirEnumCallback f, void *user /* = NULL */, bool safe /* = 
 }
 
 
-
 bool Dir::add(File *f)
 {
-    if(!f)
-        return false;
+    return _addRecursiveSkip(f, 0);
+}
 
+bool Dir::_addSingle(File *f)
+{
     Files::iterator it = _files.find(f->name());
 
     if(it != _files.end())
@@ -260,11 +261,8 @@ bool Dir::add(File *f)
     return true;
 }
 
-bool Dir::addRecursive(File *f, size_t skip /* = 0 */)
+bool Dir::_addRecursiveSkip(File *f, size_t skip /* = 0 */)
 {
-    if(!f)
-        return false;
-
     Dir *vdir = this;
     if(f->fullnameLen() - f->nameLen() > skip)
     {
@@ -285,7 +283,7 @@ bool Dir::addRecursive(File *f, size_t skip /* = 0 */)
         }
     }
 
-    return vdir->add(f);
+    return vdir->_addSingle(f);
 }
 
 void Dir::clearGarbage()
@@ -372,6 +370,14 @@ void DiskDir::load()
         Dir *d = createNew(joinPath(fullname(), it->c_str()).c_str());
         _subdirs[d->name()] = d;
     }
+}
+
+
+// ----- MemDir start here -----
+
+MemDir *MemDir::createNew(const char *dir) const
+{
+    return new MemDir(dir);
 }
 
 VFS_NAMESPACE_END

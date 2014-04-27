@@ -6,7 +6,7 @@
 #include <ttvfs_zip.h>
 
 // This is a very small zip file, containing a single file: a.txt.
-unsigned char rawData[130] = {
+static unsigned char rawData[130] = {
     0x50, 0x4B, 0x03, 0x04, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x29, 0x85,
     0x9B, 0x44, 0x44, 0x9A, 0x72, 0xED, 0x16, 0x00, 0x00, 0x00, 0x16, 0x00,
     0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x61, 0x2E, 0x74, 0x78, 0x74, 0x61,
@@ -42,13 +42,14 @@ int main(int argc, char *argv[])
     }
 
     char buf[513];
+    size_t bytes = 0;
     ttvfs::File *vf = vfs.GetFile("a.txt");
-    if(!vf || !vf->open("r") || !vf->read(buf, 512))
+    if(!vf || !vf->open("r") || !(bytes = vf->read(buf, 512)) )
     {
         puts("ERROR reading from embedded a.txt");
         return 2;
     }
-
+    buf[bytes] = 0;
     puts(buf);
     return 0;
 }
