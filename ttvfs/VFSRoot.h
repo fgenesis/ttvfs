@@ -7,7 +7,6 @@
 #include <vector>
 #include <list>
 #include <string>
-#include <iosfwd>
 
 #include "VFSRefcounted.h"
 
@@ -27,6 +26,7 @@ class DirView;
     
     Everything is reference-counted. If you store pointers to contained objects externally,
     use ttvfs::CountedPtr<>.
+    To enumerate the file tree, use ttvfs::debug::dumpTree().
 */
 class Root
 {
@@ -133,9 +133,6 @@ public:
     You will most likely not need this function.
     Use FillDirView() on a DirView object or ForEach() to iterate over directory contents. */
     DirBase *GetDir(const char* dn, bool create = false);
-
-    // DEBUG STUFF
-    void debugDumpTree(std::ostream& os, const char *path, int level);
 
 protected:
 

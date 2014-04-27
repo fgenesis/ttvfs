@@ -4,6 +4,8 @@ set(ttvfs_SRC
     VFSArchiveLoader.h
     VFSBase.cpp
     VFSBase.h
+    VFSDebug.cpp
+    VFSDebug.h
     VFSDefines.h
     VFSDir.cpp
     VFSDir.h

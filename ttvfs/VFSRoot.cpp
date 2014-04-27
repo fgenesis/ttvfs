@@ -1,8 +1,6 @@
 // VFSRoot.cpp - glues it all together and makes use simple
 // For conditions of distribution and use, see copyright notice in VFS.h
 
-#include <set>
-
 #include "VFSInternal.h"
 #include "VFSRoot.h"
 #include "VFSTools.h"
@@ -12,8 +10,6 @@
 #include "VFSLoader.h"
 #include "VFSArchiveLoader.h"
 #include "VFSDirView.h"
-
-//#include <stdio.h>
 
 #ifdef _DEBUG
 #  include <cassert>
@@ -252,68 +248,14 @@ bool Root::ForEach(const char *path, FileEnumCallback fileCallback /* = NULL */,
     if(!FillDirView(path, view))
         return false;
 
-    if(fileCallback)
-        view.forEachFile(fileCallback, user, safe);
     if(dirCallback)
         view.forEachDir(dirCallback, user, safe);
+    if(fileCallback)
+        view.forEachFile(fileCallback, user, safe);
+
     return true;
 }
 
-
-// DEBUG STUFF
-
-struct _DbgParams
-{
-    _DbgParams(std::ostream& os_, const std::string& path, const std::string& sp_)
-        : os(os_), mypath(path), sp(sp_) {}
-
-    std::ostream& os;
-    std::string mypath;
-    const std::string& sp;
-    std::set<std::string> dirnames;
-};
-
-static void _DumpFile(File *vf, void *user)
-{
-    _DbgParams& p = *((_DbgParams*)user);
-    p.os << p.sp << " F:" << vf->fullname() << " [" << vf->getType() << ", ref " << vf->getRefCount() << ", 0x" << vf << "]" << std::endl;
-}
-
-
-static void _DumpDir(DirBase *vd, void *user)
-{
-    _DbgParams& p = *((_DbgParams*)user);
-    if(!(vd->fullname()[0] == '/' && vd->fullnameLen() == 1)) // don't recurse down the root dir.
-        p.dirnames.insert(vd->name());
-    p.os << p.sp << "D : " << vd->fullname() << " [" << vd->getType() << ", ref " << vd->getRefCount() << ", 0x" << vd << "]" << std::endl;
-}
-
-static void _DumpTree(_DbgParams& p, Root& vfs, int level)
-{
-    p.os << ">> [" << p.mypath << "]" << std::endl;
-    DirView view;
-    vfs.FillDirView(p.mypath.c_str(), view);
-
-    view.forEachDir(_DumpDir, &p);
-    view.forEachFile(_DumpFile, &p);
-
-    if(!level)
-        return;
-
-    std::string sub = p.sp + "  ";
-    for(std::set<std::string>::iterator it = p.dirnames.begin(); it != p.dirnames.end(); ++it)
-    {
-        _DbgParams recP(p.os, joinPath(p.mypath, it->c_str()), sub);
-        _DumpTree(recP, vfs, level - 1);
-    }
-}
-
-void Root::debugDumpTree(std::ostream& os, const char *path, int level)
-{
-    os << ">>> FILE TREE DUMP <<<" << std::endl;
-    _DbgParams recP(os, path, "");
-    _DumpTree(recP, *this, level);
-}
 
 
 VFS_NAMESPACE_END
