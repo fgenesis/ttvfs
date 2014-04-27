@@ -121,7 +121,7 @@ public:
 
     /** Removes a dir from a given path previously added to via AddVFSDir().
     Returns true if dir does not exist at subdir after the call. */
-    bool Root::RemoveVFSDir(DirBase *dir, const char *subdir /* = NULL */);
+    bool RemoveVFSDir(DirBase *dir, const char *subdir /* = NULL */);
 
     /** Returns the tree root, which is usually the working directory.
     Same as GetDir("").
