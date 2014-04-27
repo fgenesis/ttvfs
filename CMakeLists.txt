@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.6)
 project(ttvfs)
 
 option(TTVFS_BUILD_EXAMPLES "Build examples?" FALSE)
-option(TTVFS_SUPPORT_ZIP "Build support for zip archives?" FALSE)
+option(TTVFS_SUPPORT_ZIP "Build support for zip archives?" TRUE)
 option(TTVFS_LARGEFILE_SUPPORT "Enable support for files > 4 GB? (experimental!)" TRUE)
 option(TTVFS_IGNORE_CASE "Enable full case-insensitivity even on case-sensitive OSes like Linux and alike?" TRUE)
 option(TTVFS_BUILD_CFILEAPI "Build C-style API wrapper" TRUE)
