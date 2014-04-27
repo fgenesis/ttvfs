@@ -3,21 +3,29 @@ ttvfs -- tiny tree virtual file system
 
 ----------[ TL;DR ]------------
 ** Modify VFSDefines.h to your needs, or set the defines in your build system.
-** For thread safety, see VFSAtomic.h/.cpp
 ** You are encouraged to link this library statically.
 
 ----------[ Intro ]------------
 ttvfs is a small C++ library designed to provide virtual file system support
-inside of an application. The application can choose to mount files and directories
-from any source, and access them in a uniform way (similar to fopen(), see examples).
+inside of an application.
 
-This does *not* mean support for fancy 'http://',
-'zip://', 'smb://'-like filenames, neither support for accessing archives
-like directories, as in "./data.zip/file.txt".
+ttvfs provides some commonly used platform-dependent operations such as enumerating
+files and directories, querying the size of files efficiently, obtaining safe-to-write
+per-user directories, support for wildcards, and more.
 
-If such functionality is required, an extension has to be made that generates
-a file/folder tree that can be used by the library.
-This means: if you manage to generate a VFS tree from a slice of toast, it can be used.
+ttvfs organizes files and directories in a tree structure.
+By mounting, multiple directories can be mirrored inside one, making runtime-replacing
+older files with updated ones trivial.
+
+With the built-in zip extension, zip files can be accessed like directories:
+    path/to/data.zip/file.txt.
+
+Other archives are not supported out of the box, but it is easy to add an extension
+that provides support for other archive types.
+By adding custom file loaders, it is possible to load files from anywhere,
+not only the local file system.
+
+However, ttvfs does NOT provide support for fancy http://, zip://, smb://-like filenames.
 
 This library is licensed under the MIT license (see below).
 If you use this code and like it, feel free to send me an email to
@@ -29,26 +37,28 @@ Patches/improvements are welcome!
 
 Build project/makefiles with CMake. It has sort of sane defaults so it should build
 out of the box.
-Some compile flags can be set with CMake, but the preferred way is to edit VFSDefines.h.
+Some compile flags can be set with CMake, or simply by editing VFSDefines.h.
 
 $ mkdir build
 $ cd build
 $ cmake ..
 $ make
 
-This library is intended to be small and extensible,
-and comes only with a minimal set of classes.
-It has no dependencies except the STL containers (strings, maps, deques, ...)
+ttvfs core has no dependencies except the STL containers (string, map, deque, ...).
 See VFSFile.h, VFSDir.h, VFSLoader.h for infos about how to write your own classes
 that add functionality.
+The zip extension uses miniz (https://code.google.com/p/miniz/) and should be a good
+reference how to write your own extension.
 To add ttvfs to your project, just copy the ttvfs/ subdir, which is the best way
 in case you are using CMake; if not, copy all files and add them to your build system
 of choice, or whatever.
 
-By default, this library is not thread safe - adding this would bloat it too much.
-You probably have your own threading library if you care about thread safety,
-if so, edit VFSAtomic.h/.cpp and add a few lines to glue this lib together
-with your threading implementation of choice. Be sure to read the comments there!
+Note that ttvfs is not thread safe - adding this would bloat it too much.
+You probably have your own threading library if you care about thread safety.
+The rules are simple:
+* There is no global state, but be careful with ttvfs::Root objects.
+* Do not access a ttvfs::Root object from multiple threads at the same time, even for reading.
+* Same for individual ttvfs directory and file objects.
 
 ------- [ Extensions ]--------
 
