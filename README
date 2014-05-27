@@ -3,6 +3,10 @@ ttvfs -- tiny tree virtual file system
 
 ----------[ TL;DR ]------------
 ** Modify VFSDefines.h to your needs, or set the defines in your build system.
+** See the examples for reference. Documentation is in the header files.
+** #include <ttvfs.h>
+** ???
+** Profit
 ** You are encouraged to link this library statically.
 ** Supported and tested: Windows, Linux, MacOSX, FreeBSD, Haiku (maybe), POSIX.
 
