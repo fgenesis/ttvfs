@@ -7,7 +7,7 @@ ttvfs::Root vfs;
 
 static bool lookupVFS(const char *fn, unsigned int times)
 {
-    volatile ttvfs::File *vf = vfs.GetFile(fn);
+    ttvfs::File *vf = vfs.GetFile(fn);
     if(!vf)
         return false;
     for(unsigned int i = 0; i < times; ++i)
@@ -17,14 +17,13 @@ static bool lookupVFS(const char *fn, unsigned int times)
 
 static bool openVFS(const char *fn, unsigned int times)
 {
-    volatile int dummy;
     ttvfs::File *vf = vfs.GetFile(fn);
     if(!vf)
         return false;
     for(unsigned int i = 0; i < times; ++i)
     {
         vf = vfs.GetFile(fn);
-        dummy = vf->open("rb");
+        vf->open("rb");
         vf->close();
     }
     return true;
@@ -35,11 +34,10 @@ static bool openfopen(const char *fn, unsigned int times)
     FILE *fh = fopen(fn, "rb");
     if(!fh)
         return false;
-    volatile int dummy;
     for(unsigned int i = 0; i < times; ++i)
     {
         fh = fopen(fn, "rb");
-        dummy = fclose(fh);
+        fclose(fh);
     }
     return true;
 }

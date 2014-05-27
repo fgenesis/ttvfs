@@ -53,7 +53,7 @@ void ZipFile::close()
 {
     //flush(); // TODO: write to zip file on close
 
-    delete []_buf;
+    delete [] _buf;
     _buf = NULL;
     _bufSize = 0;
 }
@@ -152,7 +152,6 @@ bool ZipFile::unpack()
 
     if(!mz_zip_reader_extract_to_mem(MZ, _fileIdx, _buf, (size_t)sz, 0))
     {
-        //assert(0 && "ZipFile unpack: Failed mz_zip_reader_extract_to_mem");
         delete [] _buf;
         _buf = NULL;
         return false; // this should not happen

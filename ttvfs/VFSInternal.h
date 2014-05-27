@@ -37,6 +37,10 @@
 # endif
 #endif
 
+#ifdef __GNUC__
+# define TTVFS_UNUSED __attribute__((unused))
+#endif
+
 // These are used for small, temporary memory allocations that can remain on the stack.
 // If alloca is available, this is the preferred way.
 #include <stdlib.h>

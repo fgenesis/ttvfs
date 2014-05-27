@@ -45,7 +45,7 @@ VFS_NAMESPACE_START
 #if defined(_MSC_VER)
      typedef __int64           vfspos;
 #elif defined(__GNUC__)
-    //__extension__ // suppress warnings about long long
+    __extension__ // suppress warnings about long long
     typedef long long int      vfspos;
 #elif defined(VFS_LARGEFILE_SUPPORT)
     // fallback using stdint. h, but only if necessary
