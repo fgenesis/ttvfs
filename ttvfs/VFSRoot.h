@@ -26,7 +26,7 @@ class DirView;
     
     Everything is reference-counted. If you store pointers to contained objects externally,
     use ttvfs::CountedPtr<>.
-    To enumerate the file tree, use ttvfs::debug::dumpTree().
+    To enumerate the file tree for debugging, use ttvfs::debug::dumpTree().
 */
 class Root
 {
@@ -98,11 +98,11 @@ public:
         Use DirView::forEachFile() or DirView::forEachDir() to iterate. */
     bool FillDirView(const char *path, DirView& view);
 
-    // Convenience method to iterate over all files and subdirs of a given path.
-    // Returns true if the path exists and iteration was successful.
-    // Both callback functions are optional, pass NULL if not interested.
-    // user is an opaque pointer passed to the callbacks.
-    // Set safe = true if the file tree is modified by a callback function.
+    /** Convenience method to iterate over all files and subdirs of a given path.
+        Returns true if the path exists and iteration was successful.
+        Both callback functions are optional, pass NULL if not interested.
+        user is an opaque pointer passed to the callbacks.
+        Set safe = true if the file tree is modified by a callback function. */
     bool ForEach(const char *path, FileEnumCallback fileCallback = NULL, DirEnumCallback dirCallback = NULL, void *user = NULL, bool safe = false);
 
     /** Remove a file or directory from the tree */

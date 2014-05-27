@@ -12,7 +12,7 @@ inside of an application.
 
 ttvfs provides some commonly used platform-dependent operations such as enumerating
 files and directories, querying the size of files efficiently, obtaining safe-to-write
-per-user directories, support for wildcards, and more.
+per-user directories, support for wildcards, ignore case on linux, and more.
 
 ttvfs organizes files and directories in a tree structure.
 By mounting, multiple directories can be mirrored inside one, making runtime-replacing

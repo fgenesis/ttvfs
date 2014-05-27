@@ -38,7 +38,6 @@ VFS_NAMESPACE_START
 #    if defined(_MSC_VER)
          typedef __int64           vfspos;
 #    else
-#        include <stdint.h>
          typedef int64_t           vfspos;
 #    endif
 #else
