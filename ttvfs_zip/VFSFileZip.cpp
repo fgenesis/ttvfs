@@ -30,6 +30,8 @@ bool ZipFile::open(const char *mode /* = NULL */)
     _pos = 0;
     if(!mode)
         mode = "rb";
+    else if(strchr(mode, 'w') || strchr(mode, 'a'))
+        return false; // writing not yet supported
     if(_mode != mode)
     {
         delete [] _buf;

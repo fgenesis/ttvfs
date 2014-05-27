@@ -6,13 +6,14 @@
 // * Define VFS_ENABLE_C_API to 1 to use ttvfs overrides.
 
 /*
-    This file is a minimal wrapper to replace the C API and std::ifstream.
-    Note that if you have an advanced needs, this wrapper API is not for you.
+    This file is a poor man's wrapper to replace the C API and std::ifstream.
+    Note that if you have any advanced needs, this wrapper API is not for you.
 
     To use it, go through your code and rename all FILE* to VFILE*,
     and fopen() and related to vfopen() (so just put a 'v' in front).
     Instead of std::ifstream, use InStream. If you use std::fstream for reading ONLY,
     also use InStream.
+    Make sure that a FILE* is not opened twice at any time - this is not supported.
 
     Note that the seek and tell functions do not offer 64 bit offsets in this API.
 */

@@ -4,7 +4,8 @@
 #include <ttvfs.h>
 #include <cstdio>
 
-// This example creates a VFS root to obtain a single file.
+// This example creates a VFS root to obtain a single file,
+// then deletes the root before using the file.
 // The file stays valid until the CountedPtr is destroyed.
 // You can use CountedPtr::content() to obtain a raw pointer,
 // but usually conversions are done automatically.
