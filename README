@@ -10,23 +10,22 @@ ttvfs -- tiny tree virtual file system
 ttvfs is a small C++ library designed to provide virtual file system support
 inside of an application.
 
-ttvfs provides some commonly used platform-dependent operations such as enumerating
-files and directories, querying the size of files efficiently, obtaining safe-to-write
-per-user directories, support for wildcards, ignore case on linux, and more.
+ttvfs provides some commonly used platform-dependent operations such as
+enumerating files and directories, querying the size of files efficiently,
+obtaining safe-to-write per-user directories, support for wildcards,
+ignore case on otherwise case-sensitive file systems, and more.
 
 ttvfs organizes files and directories in a tree structure.
-By mounting, multiple directories can be mirrored inside one, making runtime-replacing
-older files with updated ones trivial.
+By mounting, multiple directories can be mirrored inside one,
+making runtime-replacing older files with updated ones trivial.
 
 With the built-in zip extension, zip files can be accessed like directories:
     path/to/data.zip/file.txt.
 
-Other archives are not supported out of the box, but it is easy to add an extension
-that provides support for other archive types.
+Other archives are not supported out of the box, but it is easy to add
+an extension that provides support for other archive types.
 By adding custom file loaders, it is possible to load files from anywhere,
 not only the local file system.
-
-However, ttvfs does NOT provide support for fancy http://, zip://, smb://-like filenames.
 
 This library is licensed under the MIT license (see below).
 If you use this code and like it, feel free to send me an email to
@@ -36,8 +35,8 @@ Patches/improvements are welcome!
 
 ----------[ Howto ]------------
 
-Build project/makefiles with CMake. It has sort of sane defaults so it should build
-out of the box.
+Build project/makefiles with CMake. It has sort of sane defaults so it should
+build out of the box.
 Some compile flags can be set with CMake, or simply by editing VFSDefines.h.
 
 $ mkdir build
@@ -45,21 +44,28 @@ $ cd build
 $ cmake ..
 $ make
 
-ttvfs core has no dependencies except the STL containers (string, map, deque, ...).
-See VFSFile.h, VFSDir.h, VFSLoader.h for infos about how to write your own classes
-that add functionality.
-The zip extension uses miniz (https://code.google.com/p/miniz/) and should be a good
-reference how to write your own extension.
-To add ttvfs to your project, just copy the ttvfs/ subdir, which is the best way
-in case you are using CMake; if not, copy all files and add them to your build system
-of choice, or whatever.
+ttvfs core has no dependencies except the STL containers.
+See VFSFile.h, VFSDir.h, VFSLoader.h for infos about how to write your own
+classes that add functionality.
+The zip extension uses miniz (https://code.google.com/p/miniz/) and should be
+a good reference how to write your own extension.
+To add ttvfs to your project, just copy the ttvfs/ subdir,
+which is the best way in case you are using CMake; if not, copy all files
+and add them to your build system of choice, or whatever.
 
 Note that ttvfs is not thread safe - adding this would bloat it too much.
 You probably have your own threading library if you care about thread safety.
 The rules are simple:
 * There is no global state, but be careful with ttvfs::Root objects.
-* Do not access a ttvfs::Root object from multiple threads at the same time, even for reading.
+* Do not access a ttvfs::Root object from multiple threads at the same time,
+  even for reading. The tree is possibly modified by read operations.
 * Same for individual ttvfs directory and file objects.
+
+There is also no explicit support for UTF8. This may be a problem if
+case insensitivity is enabled and file names are compared.
+This can be avoided by either leaving case insensitivity disabled,
+or by making sure that all relevant files have ASCII-only names.
+
 
 ------- [ Extensions ]--------
 
