@@ -28,20 +28,31 @@
 #define VFS_NAMESPACE_END }
 
 
-#if !defined(_MSC_VER)
-#  include <stdint.h>
+// Important that this is included outside of the namespace.
+// Note that stdint.h is intentionally NOT included if possible,
+// because on gcc it pulls in features.h, which in turn checks for
+// _FILE_OFFSET_BITS presence. That means to enable 64bit file I/O,
+// _FILE_OFFSET_BITS would have to be defined here.
+// For the sake of not polluting the includer, use other means to define
+// a 64 bit type.
+#if !defined(_MSC_VER) && !defined(__GNUC__)
+#  include <stdint.h> // Hope it works.
 #endif
 
 VFS_NAMESPACE_START
 
-#ifdef VFS_LARGEFILE_SUPPORT
-#    if defined(_MSC_VER)
-         typedef __int64           vfspos;
-#    else
-         typedef int64_t           vfspos;
-#    endif
+// vfspos type (signed 64bit integer if possible, 32bit otherwise)
+#if defined(_MSC_VER)
+     typedef __int64           vfspos;
+#elif defined(__GNUC__)
+    //__extension__ // suppress warnings about long long
+    typedef long long int      vfspos;
+#elif defined(VFS_LARGEFILE_SUPPORT)
+    // fallback using stdint. h, but only if necessary
+    typedef int64_t           vfspos;
 #else
-    typedef unsigned int           vfspos;
+    // If all else fails...
+    typedef unsigned int       vfspos;
 #endif
 
 #if defined(_MSC_VER) || defined(__MINGW32__) || defined(__MINGW64__)
