@@ -39,6 +39,8 @@
 
 #ifdef __GNUC__
 # define TTVFS_UNUSED __attribute__((unused))
+#else
+# define TTVFS_UNUSED
 #endif
 
 // These are used for small, temporary memory allocations that can remain on the stack.
