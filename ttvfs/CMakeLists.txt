@@ -30,3 +30,8 @@ set(ttvfs_SRC
 )
 
 add_library(ttvfs ${ttvfs_SRC})
+
+install(TARGETS ttvfs DESTINATION lib)
+
+install(DIRECTORY ./ DESTINATION include/ttvfs
+    FILES_MATCHING PATTERN "*.h")
