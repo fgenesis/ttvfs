@@ -13,6 +13,14 @@ if(TTVFS_BUILD_GENERATOR AND NOT TTVFS_SUPPORT_ZIP)
     message(FATAL_ERROR "You must enable TTVFS_SUPPORT_ZIP to use TTVFS_BUILD_GENERATOR")
 endif()
 
+IF("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+    SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /MTd")
+    SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
+
+    SET(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /MT")
+    SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
+ENDIF("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+
 # Be sure to copy this part to your root CMakeLists.txt if you prefer to use CMake for configuring
 # instead of editing the config header directly!
 # If you edit the header, this is not necessary.
