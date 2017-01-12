@@ -36,6 +36,8 @@ typedef ttvfs::File VFILE;
 
 void ttvfs_setroot(ttvfs::Root *root);
 
+// Note that vfopen() returns the same pointer for the same file name,
+// so effectively a file is a singleton object.
 VFILE *vfopen(const char *fn, const char *mode);
 size_t vfread(void *ptr, size_t size, size_t count, VFILE *vf);
 int vfclose(VFILE *vf);

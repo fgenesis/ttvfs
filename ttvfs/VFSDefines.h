@@ -51,17 +51,18 @@ VFS_NAMESPACE_START
     // fallback using stdint. h, but only if necessary
     typedef int64_t           vfspos;
 #else
-    // If all else fails...
-    typedef unsigned int       vfspos;
+    // If all else fails
+    typedef long int          vfspos; // what fseek() uses, no guarantees whether 64 or 32 bits
 #endif
 
 #if defined(_MSC_VER) || defined(__MINGW32__) || defined(__MINGW64__)
 #    define VFS_STRICMP _stricmp
-     static const vfspos npos = vfspos(-1i64);
+#    define TTVFS_UNUSED
 #else
 #    define VFS_STRICMP strcasecmp
-     static const vfspos npos = vfspos(-1LL);
+#    define TTVFS_UNUSED __attribute__((unused))
 #endif
+static const vfspos npos = ~vfspos(0);
 
 typedef void (*delete_func)(void *);
 

@@ -145,7 +145,7 @@ bool ZipFile::unpack()
     close(); // delete the buffer
 
     const vfspos sz = size(); // will reopen the file
-    if(sz < 0)
+    if(sz == npos)
         return false;
 
     _buf = new char[size_t(sz) + 1];
