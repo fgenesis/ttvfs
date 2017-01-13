@@ -42,6 +42,7 @@ if(NOT MSVC)
     if(NOT CMAKE_BUILD_TYPE)
         set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build (Debug, Release, RelWithDebInfo, MinSizeRel)" FORCE)
     endif()
+    set(CMAKE_CXX_FLAGS "--std=gnu++11 ${CMAKE_CXX_FLAGS}")
 endif()
 
 set(code_dirs "${CMAKE_CURRENT_SOURCE_DIR}/ttvfs")
