@@ -57,10 +57,8 @@ VFS_NAMESPACE_START
 
 #if defined(_MSC_VER) || defined(__MINGW32__) || defined(__MINGW64__)
 #    define VFS_STRICMP _stricmp
-#    define TTVFS_UNUSED
 #else
 #    define VFS_STRICMP strcasecmp
-#    define TTVFS_UNUSED __attribute__((unused))
 #endif
 static const vfspos npos = ~vfspos(0);
 
